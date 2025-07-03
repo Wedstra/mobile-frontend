@@ -1,0 +1,7 @@
+flutter_native_splash:
+  android: true
+  ios: true
+  web: false
+
+  color: "#456345"
+  image: "assets/wedstra_logo.png"
