@@ -11,7 +11,6 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-
   @override
   void initState() {
     // TODO: implement initState
@@ -21,14 +20,12 @@ class _SplashScreenState extends State<SplashScreen> {
     //   Navigator.pushReplacement(context, MaterialPageRoute(builder: MainScreen()));
     // });
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Center(
-          child: Image.asset('assets/wedstra_logo.png',
-          scale: 2,)
-      ),
+      body: Center(child: Image.asset('assets/wedstra_logo.png', scale: 2)),
     );
   }
 }

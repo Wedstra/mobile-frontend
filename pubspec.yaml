@@ -38,6 +38,15 @@ dependencies:
   firebase_auth: ^5.6.0
   flutter_native_splash: ^2.4.6
   font_awesome_flutter: ^10.7.0
+  cloud_firestore: ^5.6.11
+  flutter_svg: ^2.2.0
+  image_picker: ^1.1.2
+  http: ^1.1.0
+  shared_preferences: ^2.2.2
+  jwt_decoder: ^2.0.1
+  iconsax: ^0.0.8
+  badges: ^3.1.2
+  fluttertoast: ^8.2.12
 
 dev_dependencies:
   flutter_test:

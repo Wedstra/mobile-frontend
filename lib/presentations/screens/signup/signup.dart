@@ -1,5 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
-import 'package:wedstra_mobile_app/presentations/screens/login/login.dart';
+import 'package:wedstra_mobile_app/data/services/Auth_Service/auth_services.dart';
+import 'package:wedstra_mobile_app/presentations/screens/login/login_screen.dart';
 
 class Signup extends StatefulWidget {
   const Signup({Key? key}) : super(key: key);
@@ -9,8 +13,48 @@ class Signup extends StatefulWidget {
 }
 
 class _SignupState extends State<Signup> {
+  TextEditingController usernameController = TextEditingController();
+  TextEditingController emailController = TextEditingController();
+  TextEditingController phoneController = TextEditingController();
+  TextEditingController passwordController = TextEditingController();
+  TextEditingController confirmPasswordController = TextEditingController();
+
   void _navigateToSignIn() {
-    Navigator.push(context, MaterialPageRoute(builder: (context) => Login()));
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => LoginScreen()),
+    );
+  }
+
+  void _register() async {
+    try {
+      var userCredential = null;
+      if (passwordController.text == confirmPasswordController.text) {
+        userCredential = await authService.value.createAccount(
+          email: emailController.text,
+          password: passwordController.text,
+        );
+      } else {
+        throw new FirebaseAuthException(
+          code: 'password and confirm password are not same!',
+        );
+      }
+
+      //get UID of registered user
+      final uid = userCredential.user?.uid;
+
+      //Update additional information in firestore
+      if (uid != null) {
+        FirebaseFirestore.instance.collection('users').doc(uid).set({
+          'username': usernameController.text,
+          'email': emailController.text,
+          'phone': phoneController.text,
+          'role': "USER",
+        });
+      }
+    } on FirebaseAuthException catch (e) {
+      print(e.message);
+    }
   }
 
   @override
@@ -40,8 +84,9 @@ class _SignupState extends State<Signup> {
                   SizedBox(height: 50),
                   //Text field 1 for username
                   TextFormField(
+                    controller: usernameController,
                     autofocus: true,
-                    obscureText: true,
+                    obscureText: false,
                     decoration: InputDecoration(
                       // contentPadding: EdgeInsets.symmetric(horizontal: 15, vertical: 18),
                       isDense: true,
@@ -81,8 +126,9 @@ class _SignupState extends State<Signup> {
 
                   //Text field 2 for email
                   TextFormField(
+                    controller: emailController,
                     autofocus: true,
-                    obscureText: true,
+                    obscureText: false,
                     decoration: InputDecoration(
                       // contentPadding: EdgeInsets.symmetric(horizontal: 15, vertical: 18),
                       isDense: true,
@@ -125,8 +171,9 @@ class _SignupState extends State<Signup> {
 
                   //Text field 3 for phone no
                   TextFormField(
+                    controller: phoneController,
                     autofocus: true,
-                    obscureText: true,
+                    obscureText: false,
                     decoration: InputDecoration(
                       // contentPadding: EdgeInsets.symmetric(horizontal: 15, vertical: 18),
                       isDense: true,
@@ -166,6 +213,7 @@ class _SignupState extends State<Signup> {
 
                   //Text field 4 for password
                   TextFormField(
+                    controller: passwordController,
                     autofocus: true,
                     obscureText: true,
                     decoration: InputDecoration(
@@ -207,6 +255,7 @@ class _SignupState extends State<Signup> {
 
                   //Text field 5 for confirm password
                   TextFormField(
+                    controller: confirmPasswordController,
                     autofocus: true,
                     obscureText: true,
                     decoration: InputDecoration(
@@ -249,7 +298,7 @@ class _SignupState extends State<Signup> {
                     height: 45,
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {},
+                      onPressed: _register,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Color(0xFFCB0033),
                         shape: RoundedRectangleBorder(
