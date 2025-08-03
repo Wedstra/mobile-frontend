@@ -4,6 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:wedstra_mobile_app/constants/app_constants.dart';
 
 import '../vendor_details/vendor_details.dart';
 
@@ -36,7 +37,7 @@ class _VendorDisplayState extends State<VendorDisplay> {
 
       final response = await http.get(
         Uri.parse(
-          'https://wedstra-backend-9886.onrender.com/vendor/get/verified',
+          '${ AppConstants.BASE_URL }/vendor/get/verified',
         ),
         headers: {
           'Authorization': 'Bearer $token',

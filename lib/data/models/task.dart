@@ -3,6 +3,7 @@ class Task {
   final String title;
   final String phase;
   final String type; // 'predefined' or 'custom'
+  final String task;
   bool completed;
 
   Task({
@@ -11,6 +12,7 @@ class Task {
     required this.phase,
     required this.type,
     required this.completed,
+    required this.task
   });
 
   factory Task.fromJson(Map<String, dynamic> json) {
@@ -20,6 +22,7 @@ class Task {
       phase: json['phase'] ?? 'Un-categorised',
       type: json['type'] ?? 'predefined',
       completed: json['completed'] ?? false,
+      task: json['task'],
     );
   }
 

@@ -38,8 +38,8 @@ class CustomCurvedEdges extends CustomClipper<Path> {
   }
 
   @override
-  bool shouldReclip(covariant CustomClipper<Path> oldClipper) {
-    // TODO: implement shouldReclip
-    throw UnimplementedError();
+  bool shouldReclip(CustomClipper<Path> oldClipper) {
+    // You can return true if the clip needs to be redrawn when widget rebuilds
+    return false;
   }
 }

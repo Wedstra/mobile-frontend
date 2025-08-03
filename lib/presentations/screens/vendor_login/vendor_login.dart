@@ -11,18 +11,19 @@ import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:wedstra_mobile_app/presentations/screens/forget_password/forgot_password.dart';
 import 'package:wedstra_mobile_app/presentations/screens/user_register/user_register.dart';
 import 'package:wedstra_mobile_app/presentations/screens/vendor_login/vendor_login.dart';
+import 'package:wedstra_mobile_app/presentations/screens/vendor_signup/vendor_signup.dart';
 import 'package:wedstra_mobile_app/presentations/widgets/Toast_helper/toast_helper.dart';
 
 import '../main/main_screen.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class VendorLogin extends StatefulWidget {
+  const VendorLogin({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<VendorLogin> createState() => _VendorLoginState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _VendorLoginState extends State<VendorLogin> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   late var _isLoading = false;
@@ -104,7 +105,7 @@ class _LoginScreenState extends State<LoginScreen> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Center(child: Image.asset(height: 150, 'assets/wedstra_logo.png')),
+                  Image.asset(height: 150, 'assets/wedstra_logo.png'),
                   Text(
                     'Welcome back,',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 30),
@@ -161,7 +162,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           _isPasswordVisible = !_isPasswordVisible;
                         });
                       },
-                       child: _isPasswordVisible ? Icon(Iconsax.eye) :  Icon(Iconsax.eye_slash)),
+                      child: _isPasswordVisible ? Icon(Iconsax.eye) :  Icon(Iconsax.eye_slash)),
                   labelText: 'Password',
                   enabledBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: Color(0xFF474747), width: 1),
@@ -213,22 +214,22 @@ class _LoginScreenState extends State<LoginScreen> {
                   onPressed: _isLoading ? null : () => _login(context),
                   child: _isLoading
                       ? Center(
-                          child: SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                            ),
-                          ),
-                        )
+                    child: SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                      ),
+                    ),
+                  )
                       : const Text(
-                          'Sign In',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                    'Sign In',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
               SizedBox(height: 16),
@@ -267,7 +268,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   InkWell(
                     onTap: (){
-                      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context)=> VendorLogin()), (route) => false,);
+                      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context)=> VendorSignup()), (route) => false,);
                     },
                     child: Text(
                       'Login',

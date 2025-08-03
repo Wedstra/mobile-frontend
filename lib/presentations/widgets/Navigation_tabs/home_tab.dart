@@ -31,43 +31,20 @@ class _HomeTabState extends State<HomeTab> {
 
     final List<String> items = ['Maharashtra', 'Delhi', 'Goa', 'Punjab'];
     final List<Sellers> vendors = [
-      Sellers(
-        name: "Elegant Events",
-        imageUrl: "https://example.com/images/vendor1.jpg",
-      ),
-      Sellers(
-        name: "Royal Weddings",
-        imageUrl: "https://example.com/images/vendor2.jpg",
-      ),
-      Sellers(
-        name: "Blissful Moments",
-        imageUrl: "https://example.com/images/vendor3.jpg",
-      ),
-      Sellers(
-        name: "Classic Decorators",
-        imageUrl: "https://example.com/images/vendor4.jpg",
-      ),
-      Sellers(
-        name: "Dream Makers",
-        imageUrl: "https://example.com/images/vendor5.jpg",
-      ),
-      Sellers(
-        name: "Royal Weddings",
-        imageUrl: "https://example.com/images/vendor2.jpg",
-      ),
-      Sellers(
-        name: "Blissful Moments",
-        imageUrl: "https://example.com/images/vendor3.jpg",
-      ),
-      Sellers(
-        name: "Classic Decorators",
-        imageUrl: "https://example.com/images/vendor4.jpg",
-      ),
-      Sellers(
-        name: "Dream Makers",
-        imageUrl: "https://example.com/images/vendor5.jpg",
-      ),
+      Sellers(name: "Venue", imageUrl: "assets/venue.png"),
+      Sellers(name: "Food", imageUrl: "assets/food.png"),
+      Sellers(name: "Decor & planning", imageUrl: "assets/decor_planning.png"),
+      Sellers(name: "Groom Wear", imageUrl: "assets/Groom_wear.png"),
+      Sellers(name: "Bridal Wear", imageUrl: "assets/bridal_wear.png"),
+      Sellers(name: "Makeup & Beauty", imageUrl: "assets/makeup.png"),
+      Sellers(name: "Photographers", imageUrl: "assets/photography.png"),
+      Sellers(name: "Mehndi Artists", imageUrl: "assets/mehendi.png"),
+      Sellers(name: "Jewellery & Accessories", imageUrl: "assets/jewellery.png",),
+      Sellers(name: "Florist", imageUrl: "assets/florist.png"),
+      Sellers(name: "Music & Dance", imageUrl: "assets/music_dance.png"),
+      Sellers(name: "Invites and gifts", imageUrl: "assets/invites_gifts.png"),
     ];
+
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -219,79 +196,48 @@ class _HomeTabState extends State<HomeTab> {
                 GridView.count(
                   crossAxisCount: 3,
                   crossAxisSpacing: 20,
-                  mainAxisSpacing: 0,
+                  mainAxisSpacing: 10,
                   shrinkWrap: true,
                   physics: NeverScrollableScrollPhysics(),
-                  childAspectRatio:
-                      0.7, // 👈 makes it taller (width / height ratio)
+                  childAspectRatio: 0.75, // ✅ enough space to avoid overflow
                   children: vendors.map((vendor) {
-                    return GestureDetector(
+                    return InkWell(
                       onTap: () {
                         print(vendor.name);
                       },
-                      child: Container(
-                        padding: EdgeInsets.symmetric(vertical: 10),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Column(
-                          children: [
-                            // example child content
-                            Container(
-                              height: 85,
-                              width: 85,
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade300,
-                                borderRadius: BorderRadius.circular(100),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  vendor.name[0],
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            height: 95,
+                            width: 95,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              image: DecorationImage(
+                                image: AssetImage(vendor.imageUrl),
+                                fit: BoxFit.cover,
                               ),
                             ),
-                            SizedBox(height: 10),
-                            Text(
-                              vendor.name,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            vendor.name,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(fontSize: 15),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ),
                     );
                   }).toList(),
-                ),
+                )
               ],
             ),
           ),
         ),
       ),
     );
-    // return Scaffold(
-    //   body: Center(
-    //     child: Column(
-    //       mainAxisAlignment: MainAxisAlignment.center,
-    //       children: [
-    //         const Text('This is Home Tab'),
-    //         ElevatedButton(
-    //           onPressed: () {
-    //             Navigator.of(context).push(
-    //               MaterialPageRoute(builder: (context) => const SubPage(title: 'Home')),
-    //             );
-    //           },
-    //           child: const Text('Go to Home SubPage'),
-    //         ),
-    //       ],
-    //     ),
-    //   ),
-    // );
   }
 }
 

@@ -1,17 +1,35 @@
+import 'dart:convert';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:wedstra_mobile_app/constants/app_constants.dart';
+import 'package:wedstra_mobile_app/data/services/Auth_Service/user_services/user_services.dart';
+import 'package:wedstra_mobile_app/presentations/screens/edit_profile/edit_profile.dart';
+import 'package:wedstra_mobile_app/presentations/screens/help_center/help_center.dart';
+import 'package:wedstra_mobile_app/presentations/screens/payment_method/payment_method.dart';
+import 'package:wedstra_mobile_app/presentations/screens/upgrade_plan/upgrade_plan.dart';
+import 'package:wedstra_mobile_app/presentations/screens/wishlist/wishlist.dart';
+import 'package:wedstra_mobile_app/presentations/widgets/Toast_helper/toast_helper.dart';
 
 import '../../../data/services/Auth_Service/auth_layout.dart';
 
-class ProfileTab extends StatelessWidget {
+class ProfileTab extends StatefulWidget {
   const ProfileTab({Key? key}) : super(key: key);
+
+  @override
+  State<ProfileTab> createState() => _ProfileTabState();
+}
+
+class _ProfileTabState extends State<ProfileTab> {
+  Map<String, dynamic>? _userDetails;
 
   void _logoutUser(BuildContext context) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('jwt_token');
       await prefs.remove('user_data');
+      ToastHelper().showToast('Logout Success!', ToastType.success);
       // Remove all previous routes and reload AuthLayout as the new root
       Navigator.pushAndRemoveUntil(
         context,
@@ -22,8 +40,38 @@ class ProfileTab extends StatelessWidget {
         (route) => false, // Remove all routes
       );
     } on FirebaseAuthException catch (e) {
+      ToastHelper().showToast('Logout Error!', ToastType.error);
       print(e.message);
     }
+  }
+
+  void loadUserDetails() async {
+    String? userDetailsString = await getLoggedInUserDetails();
+    if (userDetailsString != null) {
+      try {
+        // Decode once
+        var firstDecode = json.decode(userDetailsString);
+
+        // Check if it's still a String
+        var parsedJson = firstDecode is String
+            ? json.decode(firstDecode)
+            : firstDecode;
+        setState(() {
+          _userDetails = parsedJson;
+        });
+      } catch (e) {
+        print('JSON Decode Error: $e');
+      }
+    } else {
+      print('No user data found in SharedPreferences');
+    }
+  }
+
+
+  @override
+  void initState() {
+    ToastHelper().init(context);
+    loadUserDetails();
   }
 
   @override
@@ -48,25 +96,34 @@ class ProfileTab extends StatelessWidget {
                   height: 160,
                   width: 160,
                   decoration: BoxDecoration(
-                    color: Colors.greenAccent,
+                    color: Color(AppConstants.primaryColor),
                     shape: BoxShape.circle,
                   ),
                   child: Text(
-                    'V',
-                    style: TextStyle(fontSize: 50, fontWeight: FontWeight.bold),
+                    _userDetails != null ? _userDetails!['username'][0].toUpperCase() : 'G',
+                    style: TextStyle(fontSize: 50, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
+
                 ),
               ),
               SizedBox(height: 10),
               Text(
-                'Elis Jonathan',
+                _userDetails != null ? _userDetails!['username'] : 'Guest',
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
-              Text('elisjonathan@gmail.com', style: TextStyle(fontSize: 17)),
+              Text(
+                  _userDetails != null ? _userDetails!['email'] : 'Guest@gmail.com',
+                  style: TextStyle(fontSize: 17)),
               SizedBox(height: 20),
               InkWell(
                 onTap: () {
-                  // Navigate or perform action
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          EditProfile(), // Should evaluate token and show Login()
+                    ), // Remove all routes
+                  );
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(
@@ -109,7 +166,13 @@ class ProfileTab extends StatelessWidget {
               SizedBox(height: 10),
               InkWell(
                 onTap: () {
-                  // Navigate or perform action
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          Wishlist(), // Should evaluate token and show Login()
+                    ), // Remove all routes
+                  );
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(
@@ -152,7 +215,13 @@ class ProfileTab extends StatelessWidget {
               SizedBox(height: 10),
               InkWell(
                 onTap: () {
-                  // Navigate or perform action
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          PaymentMethod(), // Should evaluate token and show Login()
+                    ), // Remove all routes
+                  );
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(
@@ -195,7 +264,13 @@ class ProfileTab extends StatelessWidget {
               SizedBox(height: 10),
               InkWell(
                 onTap: () {
-                  // Navigate or perform action
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          UpgradePlan(), // Should evaluate token and show Login()
+                    ), // Remove all routes
+                  );
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(
@@ -238,7 +313,13 @@ class ProfileTab extends StatelessWidget {
               SizedBox(height: 10),
               InkWell(
                 onTap: () {
-                  // Navigate or perform action
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          HelpCenter(), // Should evaluate token and show Login()
+                    ), // Remove all routes
+                  );
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(

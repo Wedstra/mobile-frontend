@@ -4,8 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wedstra_mobile_app/constants/app_constants.dart';
+import 'package:wedstra_mobile_app/data/services/Auth_Service/user_services/user_services.dart';
+import 'package:wedstra_mobile_app/presentations/widgets/snakbar_component/snakbars.dart';
 
 import '../../../../../data/models/task.dart';
 
@@ -22,6 +25,7 @@ class _TasksTabState extends State<TasksTab> {
   bool isLoading = true;
   String? token;
   String? userId;
+  Map<String, dynamic>? _userDetails;
   final TextEditingController _taskController = TextEditingController();
 
   static const List<String> PHASE_ORDER = [
@@ -38,6 +42,7 @@ class _TasksTabState extends State<TasksTab> {
   @override
   void initState() {
     super.initState();
+    // loadUserDetails();
     _loadUserData();
   }
 
@@ -46,16 +51,51 @@ class _TasksTabState extends State<TasksTab> {
     token = prefs.getString('jwt_token');
     final userJson = prefs.getString('user_data');
     if (token != null && userJson != null) {
-      final user = jsonDecode(userJson);
-      userId = user['id'];
+      // Decode once
+      var firstDecode = json.decode(userJson);
+
+      // Check if it's still a String
+      var parsedJson = firstDecode is String
+          ? json.decode(firstDecode)
+          : firstDecode;
+
+      _userDetails = parsedJson;
+      userId = _userDetails?["id"];
+
       await _fetchTasks();
+    }
+  }
+
+  void loadUserDetails() async {
+    String? userDetailsString = await getLoggedInUserDetails();
+    if (userDetailsString != null) {
+      try {
+        // Decode once
+        var firstDecode = json.decode(userDetailsString);
+
+        // Check if it's still a String
+        var parsedJson = firstDecode is String
+            ? json.decode(firstDecode)
+            : firstDecode;
+
+        _userDetails = parsedJson;
+        userId = _userDetails?["id"];
+
+        await _fetchTasks();
+      } catch (e) {
+        print('JSON Decode Error: $e');
+      }
+    } else {
+      print('No user data found in SharedPreferences');
     }
   }
 
   Future<void> _fetchTasks() async {
     try {
       final response = await http.get(
-        Uri.parse('${AppConstants.BASE_URL}/tasks/get-predefined-all'),
+        Uri.parse(
+          '${AppConstants.BASE_URL}/tasks/all-tasks-with-status/${userId}',
+        ),
         headers: {'Authorization': 'Bearer $token'},
       );
 
@@ -123,33 +163,41 @@ class _TasksTabState extends State<TasksTab> {
   Future<void> _markTaskStatus(Task task, bool nextCompleted) async {
     try {
       if (!task.completed) {
+        final now = DateTime.now();
+        final formattedDate = DateFormat('yyyy-MM-dd HH:mm:ss').format(now);
+
+        final jsonBody = jsonEncode({
+          'userId': userId,
+          'taskId': task.id,
+          'completed': true,
+          'completedAt': formattedDate,
+        });
+
         final res = await http.post(
-          Uri.parse('https://your-api.com/tasks/mark-complete'),
+          Uri.parse('${AppConstants.BASE_URL}/tasks/mark-complete'),
           headers: {
             'Authorization': 'Bearer $token',
             'Content-Type': 'application/json',
           },
-          body: jsonEncode({
-            'userId': userId,
-            'taskId': task.id,
-            'completed': true,
-          }),
+          body: jsonBody,
         );
 
         if (res.statusCode == 200 || res.statusCode == 201) {
           setState(() {
             task.completed = true;
           });
+          showSnack(context, 'Task Completed!');
         }
       } else {
         final res = await http.delete(
           Uri.parse(
-            'https://your-api.com/tasks/${task.id}/completion?userId=$userId',
+            '${AppConstants.BASE_URL}/tasks/${task.id}/completion?userId=$userId',
           ),
           headers: {'Authorization': 'Bearer $token'},
         );
 
         if (res.statusCode == 204) {
+          showSnack(context, 'Something went wrong!', success: false);
           setState(() {
             task.completed = false;
           });
@@ -197,439 +245,168 @@ class _TasksTabState extends State<TasksTab> {
       ),
       body: groupedTasks.isEmpty
           ? const Center(child: Text("No tasks found"))
-          : ListView.builder(
-              itemCount: groupedTasks.length,
-              itemBuilder: (context, index) {
-                final phaseGroup = groupedTasks[index];
-                return ExpansionTile(
-                  title: Text(phaseGroup['phase']),
-                  children: (phaseGroup['items'] as List<Task>).map((task) {
-                    return CheckboxListTile(
-                      value: task.completed,
-                      title: Text(task.title),
-                      onChanged: (val) {
-                        _markTaskStatus(task, val ?? false);
-                      },
-                    );
-                  }).toList(),
-                );
-              },
+          : Column(
+              children: [
+                Container(
+                  margin: EdgeInsets.all(10),
+                  padding: EdgeInsets.symmetric(horizontal:18, vertical: 15),
+                  width: double.infinity,
+                  height: 200,
+                  decoration: BoxDecoration(
+                    color: Color(AppConstants.primaryColor),
+                    borderRadius: BorderRadius.circular(16.0),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Task Board',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 25,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        '8/10',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      SizedBox(height: 10),
+
+                      // Progress bar with percentage
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: LinearProgressIndicator(
+                                value: 0.8,
+                                backgroundColor: Colors.white.withOpacity(0.3),
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+                                minHeight: 10,
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            '80%',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      SizedBox(height: 20),
+
+                      // Buttons
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              side: BorderSide(color: Colors.white),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            onPressed: () {
+                              // Handle view custom Tasks
+                            },
+                            child: Text('View Custom Tasks'),
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: Colors.indigo,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            onPressed: _showAddTaskDialog,
+                            child: Text('Add Task'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  )
+                ),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: groupedTasks.length,
+                    itemBuilder: (context, index) {
+                      final phaseGroup = groupedTasks[index];
+                      final isCustomPhase = phaseGroup['phase'].toLowerCase() == 'custom';
+
+                      return ExpansionTile(
+                        title: Text(
+                          phaseGroup['phase'],
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        children: (phaseGroup['items'] as List<Task>).map((task) {
+                          return Container(
+                            margin: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.08),
+                                  blurRadius: 4,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                Checkbox(
+                                  value: task.completed,
+                                  onChanged: (val) {
+                                    _markTaskStatus(task, val ?? false);
+                                  },
+                                  activeColor: Colors.green,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Text(
+                                    task.task,
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                                if (isCustomPhase) // ✅ Show delete only for "custom" phase
+                                  IconButton(
+                                    icon: Icon(Icons.delete, color: Colors.red),
+                                    onPressed: () {
+                                      _deleteTask(task); // define this function
+                                    },
+                                  ),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      );
+                    },
+                  ),
+                ),
+
+
+              ],
             ),
     );
   }
+
+  void _deleteTask(Task task) {}
 }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: Text(
-//           'Tasks',
-//           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-//         ),
-//         centerTitle: true,
-//       ),
-//       body: Padding(
-//         padding: const EdgeInsets.symmetric(horizontal: 20.0),
-//         child: Column(
-//           children: [
-//             InkWell(
-//               onTap: () => _dialogBuilder(context),
-//               child: Container(
-//                 padding: const EdgeInsets.symmetric(
-//                   horizontal: 16,
-//                   vertical: 16,
-//                 ),
-//                 decoration: BoxDecoration(
-//                   color: Color(0xFFCB0033),
-//                   borderRadius: BorderRadius.circular(12),
-//                   boxShadow: [
-//                     BoxShadow(
-//                       color: Colors.grey.withOpacity(0.3),
-//                       blurRadius: 5,
-//                       offset: const Offset(0, 2),
-//                     ),
-//                   ],
-//                 ),
-//                 child: Row(
-//                   mainAxisAlignment: MainAxisAlignment.center,
-//                   children: [
-//                     Image.asset('assets/task_add.png'),
-//                     SizedBox(width: 10),
-//                     Text(
-//                       'Add new task',
-//                       style: TextStyle(
-//                         color: Colors.white,
-//                         fontSize: 17,
-//                         fontWeight: FontWeight.w600,
-//                       ),
-//                     ),
-//                   ],
-//                 ),
-//               ),
-//             ),
-//             SizedBox(height: 20),
-//             Align(
-//               alignment: Alignment.centerLeft,
-//               child: Text(
-//                 'Predefined Tasks',
-//                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-//               ),
-//             ),
-//             SizedBox(height: 7),
-//             Container(
-//               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-//               decoration: BoxDecoration(
-//                 color: Colors.white,
-//                 borderRadius: BorderRadius.circular(12),
-//                 boxShadow: [
-//                   BoxShadow(
-//                     color: Colors.grey.withOpacity(0.3),
-//                     blurRadius: 5,
-//                     offset: const Offset(0, 2),
-//                   ),
-//                 ],
-//               ),
-//               child: Row(
-//                 children: [
-//                   Checkbox(
-//                     checkColor: isChecked ? Colors.white : Colors.white,
-//                     fillColor: isChecked
-//                         ? WidgetStateProperty.all(Colors.green)
-//                         : WidgetStateProperty.all(Colors.white),
-//                     value: isChecked,
-//                     onChanged: (bool? value) {
-//                       setState(() {
-//                         isChecked = value!;
-//                       });
-//                     },
-//                   ),
-//                   Text(
-//                     'Modification for client',
-//                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-//                   ),
-//                   Spacer(),
-//                   InkWell(
-//                     onTap: () => _deleteDialogBuilder(context),
-//                     child: Icon(Icons.delete, color: Colors.red),
-//                   ),
-//                 ],
-//               ),
-//             ),
-//             SizedBox(height: 10),
-//             Container(
-//               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-//               decoration: BoxDecoration(
-//                 color: Colors.white,
-//                 borderRadius: BorderRadius.circular(12),
-//                 boxShadow: [
-//                   BoxShadow(
-//                     color: Colors.grey.withOpacity(0.3),
-//                     blurRadius: 5,
-//                     offset: const Offset(0, 2),
-//                   ),
-//                 ],
-//               ),
-//               child: Row(
-//                 children: [
-//                   Checkbox(
-//                     checkColor: isChecked ? Colors.white : Colors.white,
-//                     fillColor: isChecked
-//                         ? WidgetStateProperty.all(Colors.green)
-//                         : WidgetStateProperty.all(Colors.white),
-//                     value: isChecked,
-//                     onChanged: (bool? value) {
-//                       setState(() {
-//                         isChecked = value!;
-//                       });
-//                     },
-//                   ),
-//                   Text(
-//                     'Modification for client',
-//                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-//                   ),
-//                   Spacer(),
-//                   InkWell(
-//                     onTap: () => _deleteDialogBuilder(context),
-//                     child: Icon(Icons.delete, color: Colors.red),
-//                   ),
-//                 ],
-//               ),
-//             ),
-//             SizedBox(height: 10),
-//             Container(
-//               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-//               decoration: BoxDecoration(
-//                 color: Colors.white,
-//                 borderRadius: BorderRadius.circular(12),
-//                 boxShadow: [
-//                   BoxShadow(
-//                     color: Colors.grey.withOpacity(0.3),
-//                     blurRadius: 5,
-//                     offset: const Offset(0, 2),
-//                   ),
-//                 ],
-//               ),
-//               child: Row(
-//                 children: [
-//                   Checkbox(
-//                     checkColor: isChecked ? Colors.white : Colors.white,
-//                     fillColor: isChecked
-//                         ? WidgetStateProperty.all(Colors.green)
-//                         : WidgetStateProperty.all(Colors.white),
-//                     value: isChecked,
-//                     onChanged: (bool? value) {
-//                       setState(() {
-//                         isChecked = value!;
-//                       });
-//                     },
-//                   ),
-//                   Text(
-//                     'Modification for client',
-//                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-//                   ),
-//                   Spacer(),
-//                   InkWell(
-//                     onTap: () => _deleteDialogBuilder(context),
-//                     child: Icon(Icons.delete, color: Colors.red),
-//                   ),
-//                 ],
-//               ),
-//             ),
-//             SizedBox(height: 25),
-//             Align(
-//               alignment: Alignment.centerLeft,
-//               child: Text(
-//                 'Customized Tasks',
-//                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-//               ),
-//             ),
-//             SizedBox(height: 7),
-//             Container(
-//               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-//               decoration: BoxDecoration(
-//                 color: Colors.white,
-//                 borderRadius: BorderRadius.circular(12),
-//                 boxShadow: [
-//                   BoxShadow(
-//                     color: Colors.grey.withOpacity(0.3),
-//                     blurRadius: 5,
-//                     offset: const Offset(0, 2),
-//                   ),
-//                 ],
-//               ),
-//               child: Row(
-//                 children: [
-//                   Checkbox(
-//                     checkColor: isChecked ? Colors.white : Colors.white,
-//                     fillColor: isChecked
-//                         ? WidgetStateProperty.all(Colors.green)
-//                         : WidgetStateProperty.all(Colors.white),
-//                     value: isChecked,
-//                     onChanged: (bool? value) {
-//                       setState(() {
-//                         isChecked = value!;
-//                       });
-//                     },
-//                   ),
-//                   Text(
-//                     'Modification for client',
-//                     style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-//                   ),
-//                   Spacer(),
-//                   InkWell(
-//                     onTap: () => _deleteDialogBuilder(context),
-//                     child: Icon(Icons.delete, color: Colors.red),
-//                   ),
-//                 ],
-//               ),
-//             ),
-//           ],
-//         ),
-//       ),
-//     );
-//   }
-// }
-
-// void showSuccessToast() {
-//   Fluttertoast.showToast(
-//     msg: "Task added Successful.",
-//     toastLength: Toast.LENGTH_SHORT,
-//     gravity: ToastGravity.BOTTOM,
-//     timeInSecForIosWeb: 2,
-//     backgroundColor: Colors.green,
-//     textColor: Colors.white,
-//   );
-// }
-//
-// void showErrorToast() {
-//   Fluttertoast.showToast(
-//     msg: "Error adding task.",
-//     toastLength: Toast.LENGTH_SHORT,
-//     gravity: ToastGravity.BOTTOM,
-//     timeInSecForIosWeb: 2,
-//     backgroundColor: Colors.red,
-//     textColor: Colors.white,
-//   );
-// }
-
-// Future<void> _deleteDialogBuilder(BuildContext context) {
-//   return showDialog<void>(
-//     context: context,
-//     builder: (BuildContext context) {
-//       return AlertDialog(
-//         title: const Text('Create Task'),
-//         content: Column(
-//           mainAxisSize: MainAxisSize.min,
-//           children: [
-//             TextFormField(
-//               decoration: InputDecoration(
-//                 labelText: 'Enter task',
-//                 prefixIcon: Icon(Iconsax.task5, size: 20),
-//                 enabledBorder: OutlineInputBorder(
-//                   borderSide: BorderSide(color: Color(0xFF474747), width: 1),
-//                   borderRadius: BorderRadius.circular(12),
-//                 ),
-//                 focusedBorder: OutlineInputBorder(
-//                   borderSide: BorderSide(color: Color(0xB35484FF), width: 1),
-//                   borderRadius: BorderRadius.circular(12),
-//                 ),
-//                 errorBorder: OutlineInputBorder(
-//                   borderSide: BorderSide(color: Colors.red, width: 1),
-//                   borderRadius: BorderRadius.circular(12),
-//                 ),
-//                 focusedErrorBorder: OutlineInputBorder(
-//                   borderSide: BorderSide(color: Colors.red, width: 1),
-//                   borderRadius: BorderRadius.circular(12),
-//                 ),
-//                 filled: true,
-//                 fillColor: Colors.white,
-//               ),
-//
-//               maxLines: 1,
-//             ),
-//           ],
-//         ),
-//         actions: <Widget>[
-//           ElevatedButton(
-//             style: TextButton.styleFrom(
-//               textStyle: Theme
-//                   .of(context)
-//                   .textTheme
-//                   .labelLarge,
-//               backgroundColor: Colors.grey[500],
-//               shape: RoundedRectangleBorder(
-//                 borderRadius: BorderRadius.circular(12.0),
-//               ),
-//             ),
-//             child: const Text('close', style: TextStyle(color: Colors.white)),
-//             onPressed: () {
-//               Navigator.of(context).pop();
-//             },
-//           ),
-//           ElevatedButton(
-//             style: TextButton.styleFrom(
-//               backgroundColor: Colors.green[500],
-//               textStyle: Theme
-//                   .of(context)
-//                   .textTheme
-//                   .labelLarge,
-//               shape: RoundedRectangleBorder(
-//                 borderRadius: BorderRadius.circular(12.0),
-//               ),
-//             ),
-//             child: const Text(
-//               'Add Task',
-//               style: TextStyle(color: Colors.white),
-//             ),
-//             onPressed: () {
-//               showSuccessToast();
-//               Navigator.of(context).pop();
-//             },
-//           ),
-//         ],
-//       );
-//     },
-//   );
-// }
-
-// Future<void> _dialogBuilder(BuildContext context) {
-//   return showDialog<void>(
-//     context: context,
-//     builder: (BuildContext context) {
-//       return AlertDialog(
-//         title: const Text('Create Task'),
-//         content: Column(
-//           mainAxisSize: MainAxisSize.min,
-//           children: [
-//             TextFormField(
-//               decoration: InputDecoration(
-//                 labelText: 'Enter task',
-//                 prefixIcon: Icon(Iconsax.task5, size: 20),
-//                 enabledBorder: OutlineInputBorder(
-//                   borderSide: BorderSide(color: Color(0xFF474747), width: 1),
-//                   borderRadius: BorderRadius.circular(12),
-//                 ),
-//                 focusedBorder: OutlineInputBorder(
-//                   borderSide: BorderSide(color: Color(0xB35484FF), width: 1),
-//                   borderRadius: BorderRadius.circular(12),
-//                 ),
-//                 errorBorder: OutlineInputBorder(
-//                   borderSide: BorderSide(color: Colors.red, width: 1),
-//                   borderRadius: BorderRadius.circular(12),
-//                 ),
-//                 focusedErrorBorder: OutlineInputBorder(
-//                   borderSide: BorderSide(color: Colors.red, width: 1),
-//                   borderRadius: BorderRadius.circular(12),
-//                 ),
-//                 filled: true,
-//                 fillColor: Colors.white,
-//               ),
-//
-//               maxLines: 1,
-//             ),
-//           ],
-//         ),
-//         actions: <Widget>[
-//           ElevatedButton(
-//             style: TextButton.styleFrom(
-//               textStyle: Theme
-//                   .of(context)
-//                   .textTheme
-//                   .labelLarge,
-//               backgroundColor: Colors.grey[500],
-//               shape: RoundedRectangleBorder(
-//                 borderRadius: BorderRadius.circular(12.0),
-//               ),
-//             ),
-//             child: const Text('close', style: TextStyle(color: Colors.white)),
-//             onPressed: () {
-//               Navigator.of(context).pop();
-//             },
-//           ),
-//           ElevatedButton(
-//             style: TextButton.styleFrom(
-//               backgroundColor: Colors.green[500],
-//               textStyle: Theme
-//                   .of(context)
-//                   .textTheme
-//                   .labelLarge,
-//               shape: RoundedRectangleBorder(
-//                 borderRadius: BorderRadius.circular(12.0),
-//               ),
-//             ),
-//             child: const Text(
-//               'Add Task',
-//               style: TextStyle(color: Colors.white),
-//             ),
-//             onPressed: () {
-//               showSuccessToast();
-//               Navigator.of(context).pop();
-//             },
-//           ),
-//         ],
-//       );
-//     },
-//   );
-// }
-// }

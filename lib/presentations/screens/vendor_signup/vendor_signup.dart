@@ -1,11 +1,8 @@
 import 'dart:io';
-
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:wedstra_mobile_app/data/services/Auth_Service/auth_services.dart';
 
 class VendorSignup extends StatefulWidget {
   const VendorSignup({super.key});
@@ -70,36 +67,7 @@ class _VendorSignupState extends State<VendorSignup> {
 
   Future _registerVendor() async {
     try {
-      var userCredential = null;
-      if (formData['password'] == formData['confirmPassword']) {
-        userCredential = await authService.value.createAccount(
-          email: formData['email'],
-          password: formData['password'],
-        );
-      } else {
-        throw new FirebaseAuthException(
-          code: 'password and confirm password are not same!',
-        );
-      }
 
-      //get UID of registered user
-      final uid = userCredential.user?.uid;
-
-      //Update additional information in firestore
-      if (uid != null) {
-        FirebaseFirestore.instance.collection('vendors').doc(uid).set({
-          'vendorName': formData['vendorName'],
-          'email': formData['email'],
-          'phone': formData['phone'],
-          'city': formData['city'],
-          'businessName': formData['businessName'],
-          'businessCategory': formData['businessCategory'],
-          'GSTIN': formData['GSTIN'],
-          'termsAndConditions': formData['termsAndConditions'],
-          'role': "Vendor",
-          'noOfServices': 0,
-        });
-      }
     } on FirebaseAuthException catch (e) {
       print(e.message);
     }

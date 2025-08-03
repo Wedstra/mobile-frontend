@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
-import 'package:wedstra_mobile_app/data/services/Auth_Service/auth_services.dart';
 import 'package:wedstra_mobile_app/presentations/screens/login/login_screen.dart';
 
 class Signup extends StatefulWidget {
@@ -28,30 +27,7 @@ class _SignupState extends State<Signup> {
 
   void _register() async {
     try {
-      var userCredential = null;
-      if (passwordController.text == confirmPasswordController.text) {
-        userCredential = await authService.value.createAccount(
-          email: emailController.text,
-          password: passwordController.text,
-        );
-      } else {
-        throw new FirebaseAuthException(
-          code: 'password and confirm password are not same!',
-        );
-      }
 
-      //get UID of registered user
-      final uid = userCredential.user?.uid;
-
-      //Update additional information in firestore
-      if (uid != null) {
-        FirebaseFirestore.instance.collection('users').doc(uid).set({
-          'username': usernameController.text,
-          'email': emailController.text,
-          'phone': phoneController.text,
-          'role': "USER",
-        });
-      }
     } on FirebaseAuthException catch (e) {
       print(e.message);
     }

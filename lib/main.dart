@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wedstra_mobile_app/presentations/screens/login/login_screen.dart';
 import 'package:wedstra_mobile_app/presentations/screens/main/main_screen.dart';
+import 'package:wedstra_mobile_app/presentations/screens/user_register/user_register.dart';
 
 void main() {
   runApp(const MyApp());
