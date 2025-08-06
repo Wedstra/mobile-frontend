@@ -6,8 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wedstra_mobile_app/constants/app_constants.dart';
 import 'package:wedstra_mobile_app/data/services/Auth_Service/user_services/user_services.dart';
 import 'package:wedstra_mobile_app/presentations/screens/edit_profile/edit_profile.dart';
+import 'package:wedstra_mobile_app/presentations/screens/expense_track/expense_tracker.dart';
 import 'package:wedstra_mobile_app/presentations/screens/help_center/help_center.dart';
-import 'package:wedstra_mobile_app/presentations/screens/payment_method/payment_method.dart';
 import 'package:wedstra_mobile_app/presentations/screens/upgrade_plan/upgrade_plan.dart';
 import 'package:wedstra_mobile_app/presentations/screens/wishlist/wishlist.dart';
 import 'package:wedstra_mobile_app/presentations/widgets/Toast_helper/toast_helper.dart';
@@ -67,7 +67,6 @@ class _ProfileTabState extends State<ProfileTab> {
     }
   }
 
-
   @override
   void initState() {
     ToastHelper().init(context);
@@ -100,10 +99,15 @@ class _ProfileTabState extends State<ProfileTab> {
                     shape: BoxShape.circle,
                   ),
                   child: Text(
-                    _userDetails != null ? _userDetails!['username'][0].toUpperCase() : 'G',
-                    style: TextStyle(fontSize: 50, fontWeight: FontWeight.bold, color: Colors.white),
+                    _userDetails != null
+                        ? _userDetails!['username'][0].toUpperCase()
+                        : 'G',
+                    style: TextStyle(
+                      fontSize: 50,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
-
                 ),
               ),
               SizedBox(height: 10),
@@ -112,8 +116,11 @@ class _ProfileTabState extends State<ProfileTab> {
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
               Text(
-                  _userDetails != null ? _userDetails!['email'] : 'Guest@gmail.com',
-                  style: TextStyle(fontSize: 17)),
+                _userDetails != null
+                    ? _userDetails!['email']
+                    : 'Guest@gmail.com',
+                style: TextStyle(fontSize: 17),
+              ),
               SizedBox(height: 20),
               InkWell(
                 onTap: () {
@@ -218,9 +225,11 @@ class _ProfileTabState extends State<ProfileTab> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) =>
-                          PaymentMethod(), // Should evaluate token and show Login()
-                    ), // Remove all routes
+                      builder: (context) => ExpenseTracker(
+                        userId: _userDetails!['id'],
+                        budget: _userDetails!['budget'],
+                      ),
+                    ),
                   );
                 },
                 child: Container(
@@ -244,7 +253,7 @@ class _ProfileTabState extends State<ProfileTab> {
                       Image.asset('assets/profile_payment.png'),
                       SizedBox(width: 10),
                       Text(
-                        'Payment Method',
+                        'Expense Tracker',
                         style: TextStyle(
                           color: Color(0xFF414141),
                           fontSize: 16,

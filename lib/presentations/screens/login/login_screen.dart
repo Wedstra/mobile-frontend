@@ -151,7 +151,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               SizedBox(height: 16),
               TextFormField(
-                obscureText: !_isPasswordVisible,
+                obscureText: _isPasswordVisible,
                 controller: _passwordController,
                 decoration: InputDecoration(
                   prefixIcon: Icon(Iconsax.password_check),

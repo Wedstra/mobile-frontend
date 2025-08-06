@@ -26,6 +26,10 @@ class _TasksTabState extends State<TasksTab> {
   String? token;
   String? userId;
   Map<String, dynamic>? _userDetails;
+  int totalTasks = 0;
+  int completedTasks = 0;
+  int taskCompletePercentage = 0;
+
   final TextEditingController _taskController = TextEditingController();
 
   static const List<String> PHASE_ORDER = [
@@ -42,9 +46,33 @@ class _TasksTabState extends State<TasksTab> {
   @override
   void initState() {
     super.initState();
-    // loadUserDetails();
     _loadUserData();
   }
+
+  void _deleteTask(Task task) async {
+    try {
+      final response = await http.delete(
+        Uri.parse(
+          '${AppConstants.BASE_URL}/tasks/custom/${task.id}',
+        ),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+      if (response.statusCode == 204) {
+        showSnack(context, 'Task marked incomplete');
+        // Optional: Refresh tasks
+        _fetchTasks();
+      } else {
+        showSnack(context, 'Failed to update task', success: false);
+        print('Failed to delete completion: ${response.statusCode}');
+      }
+    } catch (e) {
+      showSnack(context, 'Something went wrong!', success: false);
+      print('Exception: $e');
+    }
+  }
+
 
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
@@ -66,44 +94,33 @@ class _TasksTabState extends State<TasksTab> {
     }
   }
 
-  void loadUserDetails() async {
-    String? userDetailsString = await getLoggedInUserDetails();
-    if (userDetailsString != null) {
-      try {
-        // Decode once
-        var firstDecode = json.decode(userDetailsString);
-
-        // Check if it's still a String
-        var parsedJson = firstDecode is String
-            ? json.decode(firstDecode)
-            : firstDecode;
-
-        _userDetails = parsedJson;
-        userId = _userDetails?["id"];
-
-        await _fetchTasks();
-      } catch (e) {
-        print('JSON Decode Error: $e');
-      }
-    } else {
-      print('No user data found in SharedPreferences');
-    }
-  }
-
   Future<void> _fetchTasks() async {
     try {
       final response = await http.get(
         Uri.parse(
-          '${AppConstants.BASE_URL}/tasks/all-tasks-with-status/${userId}',
+          '${AppConstants.BASE_URL}/tasks/all-tasks-with-status/$userId',
         ),
         headers: {'Authorization': 'Bearer $token'},
       );
 
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
+        final List<Task> fetchedTasks = data
+            .map((e) => Task.fromJson(e))
+            .toList();
+
+        int total = fetchedTasks.length;
+        int completed = fetchedTasks
+            .where((task) => task.completed == true)
+            .length;
+        int percentage = (total / completed).ceil();
+
         setState(() {
-          tasks = data.map((e) => Task.fromJson(e)).toList();
+          tasks = fetchedTasks;
           groupedTasks = _groupByPhase(tasks);
+          totalTasks = total;
+          completedTasks = completed;
+          taskCompletePercentage = percentage;
           isLoading = false;
         });
       } else {
@@ -185,6 +202,7 @@ class _TasksTabState extends State<TasksTab> {
         if (res.statusCode == 200 || res.statusCode == 201) {
           setState(() {
             task.completed = true;
+            _fetchTasks();
           });
           showSnack(context, 'Task Completed!');
         }
@@ -197,9 +215,10 @@ class _TasksTabState extends State<TasksTab> {
         );
 
         if (res.statusCode == 204) {
-          showSnack(context, 'Something went wrong!', success: false);
+          showSnack(context, 'Task marked as pending!');
           setState(() {
             task.completed = false;
+            _fetchTasks();
           });
         }
       }
@@ -239,17 +258,13 @@ class _TasksTabState extends State<TasksTab> {
 
     return Scaffold(
       appBar: AppBar(title: const Text("Tasks")),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _showAddTaskDialog,
-        child: const Icon(Icons.add),
-      ),
       body: groupedTasks.isEmpty
           ? const Center(child: Text("No tasks found"))
           : Column(
               children: [
                 Container(
                   margin: EdgeInsets.all(10),
-                  padding: EdgeInsets.symmetric(horizontal:18, vertical: 15),
+                  padding: EdgeInsets.symmetric(horizontal: 18, vertical: 15),
                   width: double.infinity,
                   height: 200,
                   decoration: BoxDecoration(
@@ -269,7 +284,7 @@ class _TasksTabState extends State<TasksTab> {
                       ),
                       SizedBox(height: 4),
                       Text(
-                        '8/10',
+                        '${completedTasks}/${totalTasks}',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 18,
@@ -287,15 +302,18 @@ class _TasksTabState extends State<TasksTab> {
                               child: LinearProgressIndicator(
                                 value: 0.8,
                                 backgroundColor: Colors.white.withOpacity(0.3),
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.green,
+                                ),
                                 minHeight: 10,
                               ),
                             ),
                           ),
                           SizedBox(width: 8),
                           Text(
-                            '80%',
+                            '${taskCompletePercentage.toString()}%',
                             style: TextStyle(
+                              fontSize: 15,
                               color: Colors.white,
                               fontWeight: FontWeight.w600,
                             ),
@@ -307,21 +325,8 @@ class _TasksTabState extends State<TasksTab> {
 
                       // Buttons
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          OutlinedButton(
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.white,
-                              side: BorderSide(color: Colors.white),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                            onPressed: () {
-                              // Handle view custom Tasks
-                            },
-                            child: Text('View Custom Tasks'),
-                          ),
                           ElevatedButton(
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white,
@@ -336,24 +341,33 @@ class _TasksTabState extends State<TasksTab> {
                         ],
                       ),
                     ],
-                  )
+                  ),
                 ),
                 Expanded(
                   child: ListView.builder(
                     itemCount: groupedTasks.length,
                     itemBuilder: (context, index) {
                       final phaseGroup = groupedTasks[index];
-                      final isCustomPhase = phaseGroup['phase'].toLowerCase() == 'custom';
+                      final isCustomPhase =
+                          phaseGroup['phase'].toLowerCase() == 'custom';
 
                       return ExpansionTile(
                         title: Text(
                           phaseGroup['phase'],
                           style: TextStyle(fontWeight: FontWeight.bold),
                         ),
-                        children: (phaseGroup['items'] as List<Task>).map((task) {
+                        children: (phaseGroup['items'] as List<Task>).map((
+                          task,
+                        ) {
                           return Container(
-                            margin: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                            margin: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 10,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(16),
@@ -386,7 +400,7 @@ class _TasksTabState extends State<TasksTab> {
                                     ),
                                   ),
                                 ),
-                                if (isCustomPhase) // ✅ Show delete only for "custom" phase
+                                if (isCustomPhase)
                                   IconButton(
                                     icon: Icon(Icons.delete, color: Colors.red),
                                     onPressed: () {
@@ -401,12 +415,8 @@ class _TasksTabState extends State<TasksTab> {
                     },
                   ),
                 ),
-
-
               ],
             ),
     );
   }
-
-  void _deleteTask(Task task) {}
 }
