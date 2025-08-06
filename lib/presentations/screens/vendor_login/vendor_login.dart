@@ -10,7 +10,6 @@ import 'package:wedstra_mobile_app/data/services/Auth_Service/user_services/user
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:wedstra_mobile_app/presentations/screens/forget_password/forgot_password.dart';
 import 'package:wedstra_mobile_app/presentations/screens/user_register/user_register.dart';
-import 'package:wedstra_mobile_app/presentations/screens/vendor_login/vendor_login.dart';
 import 'package:wedstra_mobile_app/presentations/screens/vendor_signup/vendor_signup.dart';
 import 'package:wedstra_mobile_app/presentations/widgets/Toast_helper/toast_helper.dart';
 
@@ -105,16 +104,16 @@ class _VendorLoginState extends State<VendorLogin> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Image.asset(height: 150, 'assets/wedstra_logo.png'),
+                  Center(child: Image.asset(height: 150, 'assets/wedstra_logo.png')),
                   Text(
-                    'Welcome back,',
+                    'Welcome Vendor,',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 30),
                   ),
                   SizedBox(height: 5),
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      'Discover Limitless Choices and Unmatched Convenience.',
+                      'Connect with Customers and Grow Your Business Effortlessly.',
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 16,

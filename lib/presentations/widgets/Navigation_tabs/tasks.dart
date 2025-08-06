@@ -29,6 +29,7 @@ class _TasksTabState extends State<TasksTab> {
   int totalTasks = 0;
   int completedTasks = 0;
   int taskCompletePercentage = 0;
+  double progressValue = 0.0;
 
   final TextEditingController _taskController = TextEditingController();
 
@@ -52,12 +53,8 @@ class _TasksTabState extends State<TasksTab> {
   void _deleteTask(Task task) async {
     try {
       final response = await http.delete(
-        Uri.parse(
-          '${AppConstants.BASE_URL}/tasks/custom/${task.id}',
-        ),
-        headers: {
-          'Authorization': 'Bearer $token',
-        },
+        Uri.parse('${AppConstants.BASE_URL}/tasks/custom/${task.id}'),
+        headers: {'Authorization': 'Bearer $token'},
       );
       if (response.statusCode == 204) {
         showSnack(context, 'Task marked incomplete');
@@ -72,7 +69,6 @@ class _TasksTabState extends State<TasksTab> {
       print('Exception: $e');
     }
   }
-
 
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
@@ -114,7 +110,7 @@ class _TasksTabState extends State<TasksTab> {
             .where((task) => task.completed == true)
             .length;
         int percentage = (total / completed).ceil();
-
+        progressValue = totalTasks == 0 ? 0.0 : completedTasks / totalTasks;
         setState(() {
           tasks = fetchedTasks;
           groupedTasks = _groupByPhase(tasks);
@@ -300,7 +296,7 @@ class _TasksTabState extends State<TasksTab> {
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(8),
                               child: LinearProgressIndicator(
-                                value: 0.8,
+                                value: 0.3,
                                 backgroundColor: Colors.white.withOpacity(0.3),
                                 valueColor: AlwaysStoppedAnimation<Color>(
                                   Colors.green,

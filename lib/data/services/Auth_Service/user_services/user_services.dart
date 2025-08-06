@@ -8,43 +8,6 @@ import 'package:http/http.dart' as http;
 
 import '../auth_layout.dart';
 
-// void getUserByUserName(username) async {
-//   print('inside getUserByUsername function');
-//   final prefs = await SharedPreferences.getInstance();
-//   final token = prefs.getString('jwt_token');
-//
-//   // If token is null or empty
-//   if (token == null || token.isEmpty) {
-//     print('No token found.');
-//     return;
-//   }
-//
-//   // Check if token is expired
-//   bool isExpired = JwtDecoder.isExpired(token);
-//   if (isExpired) {
-//     print('Token is expired. Returning...');
-//     return; // Exit early if expired
-//   }
-//
-//   print('Token expired: $isExpired');
-//
-//   // Get expiration date
-//   DateTime expiryDate = JwtDecoder.getExpirationDate(token);
-//   print('Expires at: $expiryDate');
-//
-//   final response = await http.get(
-//     Uri.parse('${AppConstants.BASE_URL}/user/get-user/$username'),
-//     headers: {
-//       'Authorization': 'Bearer $token',
-//       'Content-Type': 'application/json',
-//     },
-//   );
-//
-//   print(response.body);
-//   final userDetials = jsonEncode(response.body);
-//   await prefs.setString('user_data', userDetials);
-// }
-
 void getUserByUserName(String username) async {
   final prefs = await SharedPreferences.getInstance();
   final token = prefs.getString('jwt_token');
