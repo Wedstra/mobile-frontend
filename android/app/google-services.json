@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "37315751958",
+    "project_id": "wedstra-c4472",
+    "storage_bucket": "wedstra-c4472.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:37315751958:android:62c48213f8d1531f19c537",
+        "android_client_info": {
+          "package_name": "com.example.wedstra_mobile_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAYN42kgs-JCjKSZIdG0hRetglYb6-GiH0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
