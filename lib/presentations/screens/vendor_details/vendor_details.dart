@@ -6,6 +6,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wedstra_mobile_app/constants/app_constants.dart';
 import 'package:wedstra_mobile_app/presentations/screens/service_details/service_details.dart';
+import 'package:wedstra_mobile_app/presentations/widgets/snakbar_component/snakbars.dart';
 import '../../widgets/CurvedEdgesWidget/curved_edges.dart';
 import 'package:http/http.dart' as http;
 
@@ -25,13 +26,49 @@ class VendorDetailsScreen extends StatefulWidget {
 
 class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
   List<dynamic> serviceDetails = [];
+  late String? useId;
+  late String? token;
+  bool isWishlisted = false;
+
+  void _checkIfWishlisted() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? token = prefs.getString("jwt_token");
+    final String? userData = prefs.getString("user_data");
+
+    if (token == null || userData == null) return;
+
+    final userId = jsonDecode(userData)['id'];
+
+    try {
+      final response = await http.get(
+        Uri.parse(
+          '${AppConstants.BASE_URL}/wishlist/$userId/contains?vendorId=${widget.vendorId}',
+        ),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final bool exists = json.decode(response.body);
+        setState(() {
+          isWishlisted = exists;
+        });
+      }
+    } catch (e) {
+      print('Error checking wishlist: $e');
+    }
+  }
 
   void loadServicesByVendor() async {
     try {
       final prefs = await SharedPreferences.getInstance();
 
-      final token = prefs.getString("jwt_token");
-      print('Retrieved token = $token');
+      final storedtoken = prefs.getString("jwt_token");
+      setState(() {
+        token = storedtoken;
+      });
 
       if (token == null) {
         print("Token is null – something went wrong");
@@ -60,10 +97,44 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
     }
   }
 
+  void _loadUserDetails() async {
+    SharedPreferences pref = await SharedPreferences.getInstance();
+    final String? userData = pref.getString('user_data');
+
+    if (userData != null) {
+      final jsonDecoded = json.decode(userData);
+      setState(() {
+        useId = jsonDecoded['id'];
+      });
+    }
+  }
+
+  void _addToWishlist() async {
+    try {
+      final response = await http.post(
+        Uri.parse(
+          '${AppConstants.BASE_URL}/wishlist/${useId}/add?vendorId=${widget.vendorId}',
+        ),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+      if (response.statusCode == 200) {
+        showSnack(context, 'Vendor added to wishlist!');
+      } else {
+        showSnack(context, 'Something went wrong!', success: false);
+      }
+    } on Exception catch (e) {
+      print(e);
+    }
+  }
+
   @override
   void initState() {
-    // TODO: implement initState
+    _loadUserDetails();
     loadServicesByVendor();
+    _checkIfWishlisted();
   }
 
   @override
@@ -108,11 +179,16 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
                         Positioned(
                           top: 16,
                           right: 16,
-                          child: CircleAvatar(
-                            backgroundColor: Colors.white70,
-                            child: Icon(
-                              Icons.favorite_border,
-                              color: Colors.red,
+                          child: InkWell(
+                            onTap: _addToWishlist,
+                            child: CircleAvatar(
+                              backgroundColor: Colors.white70,
+                              child: Icon(
+                                isWishlisted
+                                    ? Icons.favorite
+                                    : Icons.favorite_border,
+                                color: isWishlisted ? Colors.red : Colors.black,
+                              ),
                             ),
                           ),
                         ),
@@ -348,13 +424,14 @@ class _ServiceTabState extends State<ServiceTab> {
                           backgroundColor: Color(AppConstants.primaryColor),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
-                          )
+                          ),
                         ),
                         onPressed: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => ServiceDetails(service: service),
+                              builder: (context) =>
+                                  ServiceDetails(service: service),
                             ),
                           );
                         },

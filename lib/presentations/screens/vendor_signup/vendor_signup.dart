@@ -2,7 +2,9 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:wedstra_mobile_app/constants/app_constants.dart';
 
 class VendorSignup extends StatefulWidget {
   const VendorSignup({super.key});
@@ -15,23 +17,25 @@ class _VendorSignupState extends State<VendorSignup> {
   late int _step = 1;
 
   Map<String, dynamic> formData = {
-    'vendorName': '',
-    'email': '',
+    'username': '',                  // same as email or separate
     'password': '',
-    'phone': '',
+    'vendor_name': '',
+    'business_name': '',
+    'business_category': '',
+    'email': '',
+    'phone_no': '',
     'city': '',
-    'confirmPassword': '',
-    'businessName': '',
-    'businessCategory': '',
-    'GSTIN': '',
-    'termsAndConditions': '',
-    'aadharCard': '',
-    'PANCard': '',
-    'businessPAN': '',
-    'electricityBill': '',
-    'liscence': '',
-    'businessPhotos': List<String>,
+    'state':'',
+    'gst_number': '',
+    'terms_and_conditions': '',
+    'vendor_aadharCard': File(''),   // File object, not string
+    'vendor_PAN': File(''),
+    'business_PAN': File(''),
+    'electricity_bill': File(''),
+    'liscence': File(''),
+    'business_photos': <File>[],     // List of File objects
   };
+
 
   void _nextTab() {
     setState(() {
@@ -65,11 +69,48 @@ class _VendorSignupState extends State<VendorSignup> {
     }
   }
 
-  Future _registerVendor() async {
-    try {
+  void _registerVendor(Map<String, dynamic> formData) async {
+    var uri = Uri.parse('${AppConstants.BASE_URL}/vendor/register'); // Replace with actual URL
 
-    } on FirebaseAuthException catch (e) {
-      print(e.message);
+    var request = http.MultipartRequest('POST', uri);
+
+    // Add text fields
+    request.fields['username'] = formData['username'];
+    request.fields['password'] = formData['password'];
+    request.fields['vendor_name'] = formData['vendor_name'];
+    request.fields['business_name'] = formData['business_name'];
+    request.fields['business_category'] = formData['business_category'];
+    request.fields['email'] = formData['email'];
+    request.fields['phone_no'] = formData['phone_no'];
+    request.fields['city'] = formData['city'];
+    request.fields['gst_number'] = formData['gst_number'];
+    request.fields['terms_and_conditions'] = formData['terms_and_conditions'];
+
+    // Add file fields (exact backend keys)
+    request.files.add(await http.MultipartFile.fromPath('liscence', formData['liscence'].path));
+    request.files.add(await http.MultipartFile.fromPath('vendor_aadharCard', formData['vendor_aadharCard'].path));
+    request.files.add(await http.MultipartFile.fromPath('vendor_PAN', formData['vendor_PAN'].path));
+    request.files.add(await http.MultipartFile.fromPath('business_PAN', formData['business_PAN'].path));
+    request.files.add(await http.MultipartFile.fromPath('electricity_bill', formData['electricity_bill'].path));
+
+    // Add multiple business photos
+    for (File photo in formData['business_photos']) {
+      request.files.add(await http.MultipartFile.fromPath('business_photos', photo.path));
+    }
+
+    try {
+      var streamedResponse = await request.send();
+      var response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print("✅ Vendor created successfully!");
+        print(response.body);
+      } else {
+        print("❌ Registration failed with status: ${response.statusCode}");
+        print(response.body);
+      }
+    } catch (e) {
+      print("⚠️ Error during registration: $e");
     }
   }
 
@@ -77,14 +118,16 @@ class _VendorSignupState extends State<VendorSignup> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
+        appBar: AppBar(
+          title: const Text(
+            'Vendor Registration',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 26),
+          ),
+          centerTitle: true,
+        ),
         body: SingleChildScrollView(
           child: Column(
             children: [
-              SizedBox(height: 10),
-              Text(
-                'Vendor Registration',
-                style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-              ),
               SizedBox(height: 20),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -212,7 +255,7 @@ class _VendorSignupState extends State<VendorSignup> {
                     SizedBox(
                       height: 40,
                       child: ElevatedButton(
-                        onPressed: _step == 3 ? _registerVendor : _nextTab,
+                        onPressed: _step == 3 ? () => _registerVendor(formData) : () => _nextTab(),
                         style: ElevatedButton.styleFrom(
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.all(Radius.circular(8)),
@@ -261,12 +304,14 @@ class PersonalInformation extends StatefulWidget {
 }
 
 class _PersonalInformationState extends State<PersonalInformation> {
+  late TextEditingController _usernameController;
   late TextEditingController _vendorNameController;
   late TextEditingController _emailController;
   late TextEditingController _passwordController;
   late TextEditingController _confirmPasswordController;
   late TextEditingController _phoneController;
   late TextEditingController _cityController;
+  late TextEditingController _stateController;
 
   @override
   void initState() {
@@ -285,10 +330,15 @@ class _PersonalInformationState extends State<PersonalInformation> {
     _phoneController = TextEditingController(text: widget.formData['phone']);
 
     _cityController = TextEditingController(text: widget.formData['city']);
+
+    _usernameController = TextEditingController(text: widget.formData['username']);
+
+    _stateController = TextEditingController(text: widget.formData['state']);
   }
 
   @override
   void dispose() {
+    _usernameController.dispose();
     _vendorNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -305,6 +355,41 @@ class _PersonalInformationState extends State<PersonalInformation> {
       child: Column(
         children: [
           SizedBox(height: 30),
+          TextFormField(
+            controller: _usernameController,
+            onChanged: (value) => widget.formData['username'] = value,
+            autofocus: true,
+            obscureText: false,
+            decoration: InputDecoration(
+              // contentPadding: EdgeInsets.symmetric(horizontal: 15, vertical: 18),
+              isDense: true,
+              hint: Text("Username"),
+              hintStyle: TextStyle(color: Color(0xFF474747)),
+
+              enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFF474747), width: 1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Color(0xB35484FF), width: 1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.red, width: 1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.red, width: 1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              filled: true,
+              fillColor: Colors.white,
+              prefixIcon: Icon(Icons.person, color: Color(0xFF414141)),
+            ),
+            style: TextStyle(letterSpacing: 0.0),
+            cursorColor: Colors.black87,
+          ),
+          SizedBox(height: 10),
           TextFormField(
             controller: _vendorNameController,
             onChanged: (value) => widget.formData['vendorName'] = value,
@@ -416,6 +501,40 @@ class _PersonalInformationState extends State<PersonalInformation> {
             decoration: InputDecoration(
               isDense: true,
               hint: Text("City"),
+              hintStyle: TextStyle(color: Color(0xFF474747)),
+
+              enabledBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Color(0xFF474747), width: 1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Color(0xB35484FF), width: 1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              errorBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.red, width: 1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              focusedErrorBorder: OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.red, width: 1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              filled: true,
+              fillColor: Colors.white,
+              prefixIcon: Icon(Icons.location_on, color: Color(0xFF414141)),
+            ),
+            style: TextStyle(letterSpacing: 0.0),
+            cursorColor: Colors.black87,
+          ),
+          SizedBox(height: 10),
+          TextFormField(
+            controller: _stateController,
+            onChanged: (value) => widget.formData['state'] = value,
+            autofocus: true,
+            obscureText: false,
+            decoration: InputDecoration(
+              isDense: true,
+              hint: Text("State"),
               hintStyle: TextStyle(color: Color(0xFF474747)),
 
               enabledBorder: OutlineInputBorder(

@@ -1,9 +1,13 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:wedstra_mobile_app/constants/app_constants.dart';
 import 'package:wedstra_mobile_app/data/models/sellers.dart';
-import 'package:wedstra_mobile_app/presentations/screens/signup/signup.dart';
 import 'package:wedstra_mobile_app/presentations/screens/vendor_signup/vendor_signup.dart';
+import 'package:wedstra_mobile_app/presentations/screens/vendors/vendor_display.dart';
 
 import '../../../data/services/Auth_Service/user_services/user_services.dart';
 
@@ -15,15 +19,37 @@ class HomeTab extends StatefulWidget {
 }
 
 class _HomeTabState extends State<HomeTab> {
+
+
+
+  void _findVendorsByCategory(String category) async {
+    try {
+      SharedPreferences pref = await SharedPreferences.getInstance();
+      final token = pref.getString('jwt_token');
+
+      final response = await http.get(
+          Uri.parse('${ AppConstants.BASE_URL }/vendor/verified/by-category/${category}'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      final decodedJson = json.decode(response.body);
+      print(' CATEGORY WISE VENDORS :  ${ decodedJson.runtimeType }');
+      Navigator.push(context, MaterialPageRoute(builder: (context) => VendorDisplay(vendorByCategory: decodedJson)));
+    } on Exception catch (e) {
+      print(e);
+    }
+  }
+
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-    // WidgetsBinding.instance.addPostFrameCallback((_) async {
-    //   bool isValid = await checkTokenAndRedirect(context);
-    //   print("Token valid: $isValid");
-    // });
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -203,7 +229,7 @@ class _HomeTabState extends State<HomeTab> {
                   children: vendors.map((vendor) {
                     return InkWell(
                       onTap: () {
-                        print(vendor.name);
+                        _findVendorsByCategory(vendor.name);
                       },
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
