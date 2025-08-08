@@ -26,6 +26,7 @@ class VendorDetailsScreen extends StatefulWidget {
 
 class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
   List<dynamic> serviceDetails = [];
+  List<dynamic> vendorDetails = [];
   late String? useId;
   late String? token;
   bool isWishlisted = false;
@@ -103,6 +104,7 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
 
     if (userData != null) {
       final jsonDecoded = json.decode(userData);
+      print(jsonDecoded.runtimeType);
       setState(() {
         useId = jsonDecoded['id'];
       });
@@ -211,7 +213,7 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              'Swami Caterers',
+                              widget.vendor['business_name'],
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
@@ -231,11 +233,11 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
 
                       // By vendor
                       Row(
-                        children: const [
-                          Text('by ', style: TextStyle(fontSize: 16)),
+                        children: [
+                          const Text('by ', style: TextStyle(fontSize: 16)),
                           Text(
-                            'Ashwin Somnath',
-                            style: TextStyle(
+                            widget.vendor['vendor_name'],
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
@@ -257,8 +259,8 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
                               color: Colors.amber[600],
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Text(
-                              'Photography',
+                            child: Text(
+                              widget.vendor['business_category'],
                               style: TextStyle(
                                 color: Colors.black,
                                 fontWeight: FontWeight.bold,
@@ -266,7 +268,10 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          const Text('| Pune', style: TextStyle(fontSize: 16)),
+                          Text(
+                            '| ${widget.vendor['city']}',
+                            style: TextStyle(fontSize: 16),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 5),
@@ -295,7 +300,7 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
                   child: TabBarView(
                     children: [
                       // About Tab
-                      AboutTab(),
+                      AboutTab(vendor: widget.vendor),
                       // Services Tab
                       ServiceTab(serviceDetails: serviceDetails),
                       // Reviews Tab
@@ -452,9 +457,15 @@ class _ServiceTabState extends State<ServiceTab> {
   }
 }
 
-class AboutTab extends StatelessWidget {
-  const AboutTab({super.key});
+class AboutTab extends StatefulWidget {
+  final dynamic vendor;
+  const AboutTab({super.key, required this.vendor});
 
+  @override
+  State<AboutTab> createState() => _AboutTabState();
+}
+
+class _AboutTabState extends State<AboutTab> {
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -470,16 +481,29 @@ class AboutTab extends StatelessWidget {
               ),
             ),
             SizedBox(height: 5),
-            Text(
-              'Lorem ipsum dolor sit amet, consectetur apiscing elit. Ut et massa mi. Aliquam in '
-              'hendrerit urna. Pellentesque sit amet sapien fringilla, mattis lgula consectetur, ultrices '
-              'mauris. Maecenas vitae attis tellus. Nullam quis imperdiet augue. Vestibulum auctor ornare leo, '
-              'non suscipit magna interdum eu. Curabitur pellentesque nibh nibh, at maximus ante fermentum sit amet. '
-              'Pellentesque commodo lacus at sodales sodales. Quisque sagittis orci ut diam condimentum, vel euismod '
-              'erat placerat. In iaculis arcu eros, eget tempus orci facilisis id.',
-              style: TextStyle(fontSize: 16),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                widget.vendor['terms_and_conditions'],
+                style: TextStyle(fontSize: 16),
+              ),
             ),
-            SizedBox(height: 20),
+            SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'GSTIN - ',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                widget.vendor['gst_number'],
+                style: TextStyle(fontSize: 16),
+              ),
+            ),
+            SizedBox(height: 10),
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
@@ -488,13 +512,14 @@ class AboutTab extends StatelessWidget {
               ),
             ),
             SizedBox(height: 5),
-            Text(
-              'Lorem ipsum dolor sit amet, consectetur apiscing elit. Ut et massa mi. Aliquam in '
-              'hendrerit urna. Pellentesque sit amet sapien fringilla, mattis lgula consectetur, ultrices '
-              'mauris. Maecenas vitae attis tellus. Nullam quis imperdiet augue. Vestibulum auctor ornare leo, ',
-              style: TextStyle(fontSize: 16),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                widget.vendor['city'],
+                style: TextStyle(fontSize: 16),
+              ),
             ),
-            SizedBox(height: 20),
+            SizedBox(height: 10),
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
@@ -513,7 +538,7 @@ class AboutTab extends StatelessWidget {
                     color: Color(0xFF414141),
                   ),
                 ),
-                Text('+91 34XXXXXX83', style: TextStyle(fontSize: 16)),
+                Text(widget.vendor['phone_no'], style: TextStyle(fontSize: 16)),
               ],
             ),
             Row(
@@ -526,7 +551,7 @@ class AboutTab extends StatelessWidget {
                     color: Color(0xFF474747),
                   ),
                 ),
-                Text('XXXXXX@gmail.com', style: TextStyle(fontSize: 16)),
+                Text(widget.vendor['email'], style: TextStyle(fontSize: 16)),
               ],
             ),
           ],

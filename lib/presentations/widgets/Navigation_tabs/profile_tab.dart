@@ -210,7 +210,7 @@ class _ProfileTabState extends State<ProfileTab> {
           }),
           _buildTabTile('assets/profile_user.png', 'Documents', () {
             Navigator.push(
-                context, MaterialPageRoute(builder: (_) => VendorDocuments()));
+                context, MaterialPageRoute(builder: (_) => VendorDocuments(vendor: _userDetails)));
           }),
           _buildTabTile('assets/profile_user.png', 'Manage Services', () {
             Navigator.push(
