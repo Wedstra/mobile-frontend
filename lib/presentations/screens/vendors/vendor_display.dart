@@ -143,26 +143,6 @@ class _VendorDisplayState extends State<VendorDisplay> {
     }
   }
 
-  // @override
-  // void initState() {
-  //   // TODO: implement initState
-  //   super.initState();
-  //   _getCategories();
-  //   _fetchStates();
-  //
-  //   final List<dynamic> vendorByCategory = widget.vendorByCategory;
-  //   if(vendorByCategory.isEmpty){
-  //     getVerifiedVendors();
-  //   }
-  //   else{
-  //     setState(() {
-  //       vendorList = vendorByCategory;
-  //       isLoading = false;
-  //     });
-  //   }
-  //
-  // }
-
   @override
   void initState() {
     super.initState();

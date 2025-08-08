@@ -251,7 +251,6 @@ class _TasksTabState extends State<TasksTab> {
     if (isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
-
     return Scaffold(
       appBar: AppBar(title: const Text("Tasks")),
       body: groupedTasks.isEmpty

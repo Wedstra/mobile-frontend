@@ -9,6 +9,7 @@ import 'package:wedstra_mobile_app/constants/app_constants.dart';
 import 'package:wedstra_mobile_app/data/services/Auth_Service/user_services/user_services.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:wedstra_mobile_app/presentations/screens/forget_password/forgot_password.dart';
+import 'package:wedstra_mobile_app/presentations/screens/login/login_screen.dart';
 import 'package:wedstra_mobile_app/presentations/screens/user_register/user_register.dart';
 import 'package:wedstra_mobile_app/presentations/screens/vendor_signup/vendor_signup.dart';
 import 'package:wedstra_mobile_app/presentations/widgets/Toast_helper/toast_helper.dart';
@@ -36,7 +37,7 @@ class _VendorLoginState extends State<VendorLogin> {
       print('email address = ${_emailController.text}');
       print('password = ${_passwordController.text}');
 
-      final url = Uri.parse('${AppConstants.BASE_URL}/user/login');
+      final url = Uri.parse('${AppConstants.BASE_URL}/vendor/login');
 
       var response = await http.post(
         url,
@@ -51,11 +52,9 @@ class _VendorLoginState extends State<VendorLogin> {
         final jwtToken = response.body;
 
         final prefs = await SharedPreferences.getInstance();
-        print("Saving token: $jwtToken");
         await prefs.setString("jwt_token", jwtToken);
 
         final newToken = await prefs.getString("jwt_token");
-        print("After Saving token: $newToken");
 
         // Check for expiry
         if (JwtDecoder.isExpired(jwtToken)) {
@@ -66,7 +65,7 @@ class _VendorLoginState extends State<VendorLogin> {
         // Decode token
         Map<String, dynamic> decodedToken = JwtDecoder.decode(jwtToken);
         String username = decodedToken['sub'];
-        getUserByUserName(username);
+        getVendorByUserName(username);
 
         ToastHelper().showToast("Login successful!", ToastType.success);
         Navigator.pushReplacement(
@@ -151,7 +150,7 @@ class _VendorLoginState extends State<VendorLogin> {
               ),
               SizedBox(height: 16),
               TextFormField(
-                obscureText: !_isPasswordVisible,
+                obscureText: _isPasswordVisible,
                 controller: _passwordController,
                 decoration: InputDecoration(
                   prefixIcon: Icon(Iconsax.password_check),
@@ -244,7 +243,7 @@ class _VendorLoginState extends State<VendorLogin> {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => UserRegister()),
+                      MaterialPageRoute(builder: (context) => VendorSignup()),
                     );
                   },
                   child: const Text(
@@ -262,12 +261,12 @@ class _VendorLoginState extends State<VendorLogin> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Are you vendor? ',
+                    'Are you user? ',
                     style: TextStyle(color: Colors.grey[700], fontSize: 16),
                   ),
                   InkWell(
                     onTap: (){
-                      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context)=> VendorSignup()), (route) => false,);
+                      Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (context)=> LoginScreen()), (route) => false,);
                     },
                     child: Text(
                       'Login',
