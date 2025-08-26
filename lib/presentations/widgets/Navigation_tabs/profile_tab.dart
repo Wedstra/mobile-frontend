@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:iconsax/iconsax.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wedstra_mobile_app/constants/app_constants.dart';
 import 'package:wedstra_mobile_app/data/services/Auth_Service/user_services/user_services.dart';
@@ -11,6 +12,7 @@ import 'package:wedstra_mobile_app/presentations/screens/expense_track/expense_t
 import 'package:wedstra_mobile_app/presentations/screens/help_center/help_center.dart';
 import 'package:wedstra_mobile_app/presentations/screens/upgrade_plan/upgrade_plan.dart';
 import 'package:wedstra_mobile_app/presentations/screens/vendor_documents/vendor_documents.dart';
+import 'package:wedstra_mobile_app/presentations/screens/view_profile/view_profile.dart';
 import 'package:wedstra_mobile_app/presentations/screens/wishlist/wishlist.dart';
 import 'package:wedstra_mobile_app/presentations/widgets/Toast_helper/toast_helper.dart';
 
@@ -178,32 +180,31 @@ class _ProfileTabState extends State<ProfileTab> {
     if (userRole == 'USER') {
       return Column(
         children: [
-          _buildTabTile('assets/profile_user.png', 'Edit Profile', () {
+          _buildTabTile(Iconsax.profile_circle, 'View Profile', () {
             Navigator.push(
-                context, MaterialPageRoute(builder: (_) => EditProfile()));
+                context, MaterialPageRoute(builder: (_) => ViewProfile(profileData: _userDetails!,)));
           }),
-          _buildTabTile('assets/profile_wishlist.png', 'Wishlist', () {
+          _buildTabTile(Iconsax.heart, 'Wishlist', () {
             Navigator.push(
                 context, MaterialPageRoute(builder: (_) => Wishlist()));
           }),
-          _buildTabTile('assets/profile_payment.png', 'Expense Tracker', () {
+          _buildTabTile(Iconsax.card, 'Expense Tracker', () {
             Navigator.push(context, MaterialPageRoute(
-              builder: (_) =>
-                  ExpenseTracker(
-                    userId: _userDetails?['id'],
-                    budget: _userDetails?['budget'],
-                  ),
+              builder: (_) => ExpenseTracker(
+                userId: _userDetails?['id'],
+                budget: _userDetails?['budget'],
+              ),
             ));
           }),
-          _buildTabTile('assets/profile_user.png', 'Manage Blogs', () {
+          _buildTabTile(Iconsax.note_text, 'Manage Blogs', () {
             Navigator.push(
                 context, MaterialPageRoute(builder: (_) => Blogs()));
           }),
-          _buildTabTile('assets/profile_upgrade.png', 'Upgrade Plan', () {
+          _buildTabTile(Iconsax.crown, 'Upgrade Plan', () {
             Navigator.push(
                 context, MaterialPageRoute(builder: (_) => UpgradePlan()));
           }),
-          _buildTabTile('assets/profile_help.png', 'Help Center', () {
+          _buildTabTile(Iconsax.message_question, 'Help Center', () {
             Navigator.push(
                 context, MaterialPageRoute(builder: (_) => HelpCenter()));
           }),
@@ -213,48 +214,41 @@ class _ProfileTabState extends State<ProfileTab> {
     if (userRole == 'VENDOR') {
       return Column(
         children: [
-          _buildTabTile('assets/profile_user.png', 'Edit Vendor Profile', () {
-            Navigator.push(
-                context, MaterialPageRoute(builder: (_) => VendorProfile()));
+          _buildTabTile(Iconsax.profile_circle, 'View Profile', () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => ViewProfile(profileData: _userDetails!,)));
           }),
-          _buildTabTile('assets/profile_user.png', 'Documents', () {
-            Navigator.push(
-                context, MaterialPageRoute(builder: (_) => VendorDocuments(vendor: _userDetails)));
+          _buildTabTile(Iconsax.document, 'Documents', () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => VendorDocuments(vendor: _userDetails)));
           }),
-          _buildTabTile('assets/profile_user.png', 'Manage Services', () {
-            Navigator.push(
-                context, MaterialPageRoute(builder: (_) => ManageServices(vendorId: _userDetails?['id'])));
+          _buildTabTile(Iconsax.briefcase, 'Manage Services', () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => ManageServices(vendorId: _userDetails?['id'])));
           }),
-          _buildTabTile('assets/profile_user.png', 'Upgrade Plan', () {
-            Navigator.push(
-                context, MaterialPageRoute(builder: (_) => UpgradePlan()));
+          _buildTabTile(Iconsax.crown, 'Upgrade Plan', () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => UpgradePlan()));
           }),
-          _buildTabTile('assets/profile_help.png', 'Help Center', () {
-            Navigator.push(
-                context, MaterialPageRoute(builder: (_) => HelpCenter()));
+          _buildTabTile(Iconsax.message_question, 'Help Center', () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => HelpCenter()));
           }),
+
         ],
       );
     }
     if (userRole == 'ADMIN') {
       return Column(
         children: [
-          _buildTabTile('assets/profile_user.png', 'Manage Users', () {
-            Navigator.push(
-                context, MaterialPageRoute(builder: (_) => ManageUsers()));
+          _buildTabTile(Iconsax.user_edit, 'Manage Users', () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => ManageUsers()));
           }),
-          _buildTabTile('assets/profile_user.png', 'Manage Vendors', () {
-            Navigator.push(
-                context, MaterialPageRoute(builder: (_) => ManageVendors()));
+          _buildTabTile(Iconsax.shop, 'Manage Vendors', () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => ManageVendors()));
           }),
-          _buildTabTile('assets/profile_user.png', 'Manage Blogs', () {
-            Navigator.push(
-                context, MaterialPageRoute(builder: (_) => ManageBlogs()));
+          _buildTabTile(Iconsax.note_text, 'Manage Blogs', () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => ManageBlogs()));
           }),
-          _buildTabTile('assets/profile_help.png', 'Admin Help Center', () {
-            Navigator.push(
-                context, MaterialPageRoute(builder: (_) => HelpCenter()));
+          _buildTabTile(Iconsax.message_question, 'Admin Help Center', () {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => HelpCenter()));
           }),
+
         ],
       );
     } else {
@@ -268,8 +262,7 @@ class _ProfileTabState extends State<ProfileTab> {
 VendorProfile() {
 }
 
-
-Widget _buildTabTile(String assetPath, String label, VoidCallback onTap) {
+Widget _buildTabTile(IconData icon, String label, VoidCallback onTap) {
   return Padding(
     padding: const EdgeInsets.only(bottom: 10),
     child: InkWell(
@@ -289,7 +282,7 @@ Widget _buildTabTile(String assetPath, String label, VoidCallback onTap) {
         ),
         child: Row(
           children: [
-            Image.asset(assetPath),
+            Icon(icon, color: const Color(0xFF414141), size: 22),
             const SizedBox(width: 10),
             Text(
               label,
@@ -311,6 +304,49 @@ Widget _buildTabTile(String assetPath, String label, VoidCallback onTap) {
     ),
   );
 }
+
+// Widget _buildTabTile(String assetPath, String label, VoidCallback onTap) {
+//   return Padding(
+//     padding: const EdgeInsets.only(bottom: 10),
+//     child: InkWell(
+//       onTap: onTap,
+//       child: Container(
+//         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+//         decoration: BoxDecoration(
+//           color: Colors.white,
+//           borderRadius: BorderRadius.circular(12),
+//           boxShadow: [
+//             BoxShadow(
+//               color: Colors.grey.withOpacity(0.3),
+//               blurRadius: 5,
+//               offset: const Offset(0, 2),
+//             ),
+//           ],
+//         ),
+//         child: Row(
+//           children: [
+//             Image.asset(assetPath),
+//             const SizedBox(width: 10),
+//             Text(
+//               label,
+//               style: const TextStyle(
+//                 color: Color(0xFF414141),
+//                 fontSize: 16,
+//                 fontWeight: FontWeight.w500,
+//               ),
+//             ),
+//             const Spacer(),
+//             const Icon(
+//               Icons.arrow_forward_ios,
+//               size: 16,
+//               color: Color(0xFF414141),
+//             ),
+//           ],
+//         ),
+//       ),
+//     ),
+//   );
+// }
 
 
 

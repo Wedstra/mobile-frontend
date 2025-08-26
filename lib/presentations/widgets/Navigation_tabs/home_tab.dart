@@ -199,28 +199,21 @@ class _HomeTabState extends State<HomeTab> {
                   ],
                 ),
                 SizedBox(height: 15),
-                GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            const VendorSignup(), // or VendorSignup() if not const
-                      ),
-                    );
-                  },
-                  child: Container(
-                    width: double.infinity,
-                    height: 200,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      color: Colors.grey,
-                      image: DecorationImage(
-                        image: AssetImage('assets/notification.png'),
-                      ),
-                    ),
-                  ),
-                ),
+                // GestureDetector(
+                //   onTap: () {
+                //   },
+                //   child: Container(
+                //     width: double.infinity,
+                //     height: 200,
+                //     decoration: BoxDecoration(
+                //       borderRadius: BorderRadius.circular(12),
+                //       color: Colors.grey,
+                //       image: DecorationImage(
+                //         image: AssetImage('assets/notification.png'),
+                //       ),
+                //     ),
+                //   ),
+                // ),
                 SizedBox(height: 10),
                 GridView.count(
                   crossAxisCount: 3,

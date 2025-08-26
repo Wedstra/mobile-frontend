@@ -10,6 +10,7 @@ import 'package:wedstra_mobile_app/presentations/screens/service_details/service
 import 'package:wedstra_mobile_app/presentations/widgets/snakbar_component/snakbars.dart';
 import '../../widgets/CurvedEdgesWidget/curved_edges.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
 class VendorDetailsScreen extends StatefulWidget {
   final String vendorId;
@@ -27,9 +28,11 @@ class VendorDetailsScreen extends StatefulWidget {
 
 class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
   List<dynamic> serviceDetails = [];
+  List<dynamic> reviews = [];
   List<dynamic> vendorDetails = [];
-  late String? useId;
-  late String? token;
+  String? userId;
+  String? username;
+  String? token;
   bool isWishlisted = false;
 
   void _checkIfWishlisted() async {
@@ -85,8 +88,6 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
         },
       );
 
-      print("ACTUAL RESPONSE BODY = ${response.body}");
-
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         setState(() {
@@ -100,15 +101,46 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
     }
   }
 
+  void _loadVendorReviews() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      final storedtoken = prefs.getString("jwt_token");
+      setState(() {
+        token = storedtoken;
+      });
+      print("token = $token");
+      print("venodID = ${ widget.vendorId }");
+      final response = await http.get(
+        Uri.parse('${AppConstants.BASE_URL}/reviews/vendor/${ widget.vendorId }'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          reviews = data;
+        });
+      } else {
+        print('Failed to load Reviews: ${response.statusCode}');
+      }
+    } on Exception catch (e) {
+      print(e);
+    }
+  }
+
   void _loadUserDetails() async {
     SharedPreferences pref = await SharedPreferences.getInstance();
     final String? userData = pref.getString('user_data');
 
     if (userData != null) {
       final jsonDecoded = json.decode(userData);
-      print(jsonDecoded.runtimeType);
       setState(() {
-        useId = jsonDecoded['id'];
+        userId = jsonDecoded['id'];
+        username = jsonDecoded['username'];
       });
     }
   }
@@ -118,7 +150,7 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
       if (isWishlisted == false) {
         final response = await http.post(
           Uri.parse(
-            '${AppConstants.BASE_URL}/wishlist/${useId}/add?vendorId=${widget.vendorId}',
+            '${AppConstants.BASE_URL}/wishlist/${userId}/add?vendorId=${widget.vendorId}',
           ),
           headers: {
             'Authorization': 'Bearer $token',
@@ -127,14 +159,16 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
         );
         if (response.statusCode == 200) {
           showSnack(context, 'Vendor added to wishlist!');
-          setState(() {isWishlisted = true;});
+          setState(() {
+            isWishlisted = true;
+          });
         } else {
           showSnack(context, 'Something went wrong! adding', success: false);
         }
       } else {
         final response = await http.delete(
           Uri.parse(
-            '${AppConstants.BASE_URL}/wishlist/${useId}/remove?vendorId=${widget.vendorId}',
+            '${AppConstants.BASE_URL}/wishlist/$userId/remove?vendorId=${widget.vendorId}',
           ),
           headers: {
             'Authorization': 'Bearer $token',
@@ -142,12 +176,13 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
           },
         );
         if (response.statusCode == 200) {
-          setState(() { isWishlisted = false; });
+          setState(() {
+            isWishlisted = false;
+          });
           showSnack(context, 'Vendor removed from wishlist!');
         } else {
           showSnack(context, 'Something went wrong! removing', success: false);
         }
-
       }
     } on Exception catch (e) {
       print(e);
@@ -156,9 +191,11 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
 
   @override
   void initState() {
+    super.initState();
     _loadUserDetails();
     loadServicesByVendor();
     _checkIfWishlisted();
+    _loadVendorReviews();
   }
 
   @override
@@ -326,7 +363,13 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
                       // Services Tab
                       ServiceTab(serviceDetails: serviceDetails),
                       // Reviews Tab
-                      ReviewsTab(),
+                      ReviewsTab(
+                        userId: userId,
+                        username: username,
+                        vendorId: widget.vendorId,
+                        token: token,
+                        reviews: reviews,
+                      ),
                     ],
                   ),
                 ),
@@ -340,7 +383,7 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
             final chatRoom = ChatRoom(
               vendorId: widget.vendorId,
               vendorName: widget.vendor['vendor_name'],
-              userId: useId ?? "", // from _loadUserDetails
+              userId: userId ?? "", // from _loadUserDetails
               username: widget.vendor['vendor_name'], // or logged-in user name
             );
             chatRoom.openChat(context); // ✅ show dialog
@@ -353,25 +396,218 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
 }
 
 class ReviewsTab extends StatelessWidget {
-  const ReviewsTab({super.key});
+  final String? userId;
+  final String? username;
+  final String vendorId;
+  final String? token;
+  final List<dynamic> reviews;
+  const ReviewsTab({
+    super.key,
+    required this.userId,
+    required this.username,
+    required String this.vendorId,
+    required String? this.token,
+    required List<dynamic> this.reviews,
+  });
 
   @override
   Widget build(BuildContext context) {
+    Future<void> addReviewToVendor(String reviewContent, int ratings) async {
+      final Map<String, dynamic> jsonBody = {
+        "userId": userId,
+        "vendorId": vendorId,
+        "username": username,
+        "content": reviewContent,
+        "rating": ratings.toInt(),
+      };
+
+      try {
+        final response = await http.post(
+          Uri.parse("${AppConstants.BASE_URL}/reviews"),
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer $token", // 🔑 token here
+          },
+          body: jsonEncode(jsonBody),
+        );
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          showSnack(context, "Review submitted successfully!");
+        } else {
+          showSnack(context, "Failed to submit review!", success: false);
+        }
+      } catch (e) {
+        print("Error submitting review: $e");
+      }
+    }
+
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: SingleChildScrollView(
         child: Column(
-          children: const [
-            ListTile(
-              leading: Icon(Icons.person),
-              title: Text('Anjali Patel'),
-              subtitle: Text('Amazing food and service!'),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Add Review Button
+            Align(
+              alignment: Alignment.centerRight,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) {
+                      final TextEditingController reviewController =
+                          TextEditingController();
+                      double selectedRating = 0; // store user’s rating
+
+                      return StatefulBuilder(
+                        // use this so stars can update inside dialog
+                        builder: (context, setState) {
+                          return AlertDialog(
+                            title: const Text("Add Review"),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Text input
+                                TextField(
+                                  controller: reviewController,
+                                  decoration: const InputDecoration(
+                                    hintText: "Write your review here...",
+                                  ),
+                                  maxLines: 3,
+                                ),
+                                const SizedBox(height: 20),
+
+                                // Rating stars
+                                const Text("Rate this vendor:"),
+                                const SizedBox(height: 8),
+                                RatingBar.builder(
+                                  initialRating: 0,
+                                  minRating: 1,
+                                  allowHalfRating: false,
+                                  itemCount: 5,
+                                  itemSize: 32,
+                                  glow: false,
+                                  itemBuilder: (context, _) => const Icon(
+                                    Icons.star,
+                                    color: Colors.amber,
+                                  ),
+                                  onRatingUpdate: (rating) {
+                                    setState(() {
+                                      selectedRating = rating;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text("Cancel"),
+                              ),
+                              ElevatedButton(
+                                onPressed: () {
+                                  final reviewContent = reviewController.text
+                                      .trim();
+
+                                  if (reviewContent.isNotEmpty &&
+                                      selectedRating > 0) {
+                                    addReviewToVendor(
+                                      reviewContent,
+                                      selectedRating.toInt(),
+                                    );
+                                    Navigator.pop(context);
+                                  } else {
+                                    // optional: show validation error
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          "Please add review & rating",
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                                child: const Text("Submit"),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                  );
+                },
+                icon: const Icon(Iconsax.message_add, color: Colors.white),
+                label: const Text(
+                  "Add Review",
+                  style: TextStyle(color: Colors.white),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(AppConstants.primaryColor),
+                ),
+              ),
             ),
-            Divider(),
-            ListTile(
-              leading: Icon(Icons.person),
-              title: Text('Rohan Mehta'),
-              subtitle: Text('Highly recommended!'),
+            const SizedBox(height: 16),
+
+            ListView.separated(
+              shrinkWrap: true,
+              physics:
+                  const NeverScrollableScrollPhysics(), // allow wrapping inside parent scroll
+              itemCount: reviews.length,
+              separatorBuilder: (_, __) => const Divider(),
+              itemBuilder: (context, index) {
+                final review = reviews[index];
+
+                return ListTile(
+                  leading: CircleAvatar(
+                    radius: 20,
+                    backgroundColor: Colors.grey.shade200,
+                    backgroundImage: review['profileImage'] != null &&
+                        review['profileImage'].isNotEmpty
+                        ? NetworkImage(review['profileImage'])
+                        : null,
+                    child: (review['profileImage'] == null ||
+                        review['profileImage'].isEmpty)
+                        ? const Icon(Icons.person, color: Colors.grey)
+                        : null,
+                  ),
+                  title: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              review['username'] ?? "Unknown",
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          RatingBarIndicator(
+                            rating: (review['rating'] ?? 0).toDouble(),
+                            itemBuilder: (context, _) =>
+                            const Icon(Icons.star, color: Colors.amber),
+                            itemSize: 18,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        review['content'] ?? "",
+                        style: const TextStyle(fontSize: 14, color: Colors.black87),
+                      ),
+                    ],
+                  ),
+                  // Removing subtitle because we moved everything into title column
+                  subtitle: null,
+                );
+
+
+              },
             ),
           ],
         ),

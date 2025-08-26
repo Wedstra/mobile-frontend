@@ -25,14 +25,16 @@ class _ExpenseTrackerState extends State<ExpenseTracker> {
   TextEditingController _titleController = TextEditingController();
   TextEditingController _amountController = TextEditingController();
   String? selectedCategory;
-
+  bool test = false;
   double _expenses = 0;
   String? token;
 
   Future<List<Expense>> getExpensesForUser() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      token = prefs.getString('jwt_token');
+      setState(() {
+        token = prefs.getString('jwt_token');
+      });
       final response = await http.get(
         Uri.parse('${AppConstants.BASE_URL}/expense/user/${widget.userId}'),
         headers: {'Authorization': 'Bearer $token'},
@@ -58,9 +60,6 @@ class _ExpenseTrackerState extends State<ExpenseTracker> {
       );
       if (response.statusCode == 200) {
         _categoryList = json.decode(response.body);
-
-        print(_categoryList);
-        print(_categoryList.runtimeType);
       }
     } on Exception catch (e) {
       print(e);
@@ -113,6 +112,32 @@ class _ExpenseTrackerState extends State<ExpenseTracker> {
     selectedCategory = null;
   }
 
+  void updateBudget(String newbudget) async {
+    try {
+      final response = await http.put(
+        Uri.parse(
+          "${AppConstants.BASE_URL}/user/${widget.userId}/budget",
+        ),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer $token",
+        },
+        body: jsonEncode(
+          newbudget,
+        ),
+      );
+
+
+      if(response.statusCode == 200){
+        showSnack(context, "Budget Updated Successfully!");
+      }
+      else{
+        showSnack(context, "Something went wrong!", success: false);
+      }
+    } on Exception catch (e) {
+      print(e);
+    }
+  }
 
   @override
   void initState() {
@@ -251,14 +276,84 @@ class _ExpenseTrackerState extends State<ExpenseTracker> {
                   SizedBox(height: 20),
 
                   /// Expense Line Chart Section
-                  Text(
-                    'Expense Trends',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF474747),
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Expense Trends',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF474747),
+                        ),
+                      ),
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.teal,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        icon: Icon(Icons.edit, color: Colors.white),
+                        label: Text(
+                          "Update Budget",
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        onPressed: () {
+                          void _showUpdateBudgetDialog(BuildContext context) {
+                            final controller = TextEditingController();
+
+                            showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                title: Text("Update Budget"),
+                                content: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    TextField(
+                                      controller: controller,
+                                      keyboardType: TextInputType.number,
+                                      decoration: InputDecoration(
+                                        hintText: "Enter new budget",
+                                        border: OutlineInputBorder(),
+                                      ),
+                                    ),
+                                    SizedBox(height: 12),
+                                    Text(
+                                      "Note: If the budget does not update immediately, please try re-logging into the app.",
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    child: Text("Cancel"),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      if (controller.text.isNotEmpty) {
+                                        updateBudget(controller.text);
+                                      }
+                                      Navigator.pop(context);
+                                    },
+                                    child: Text("Save"),
+                                  ),
+                                ],
+                              ),
+                            );
+
+                          }
+
+                          _showUpdateBudgetDialog(context);
+                        },
+                      ),
+                    ],
                   ),
+
                   SizedBox(height: 10),
                   FutureBuilder<List<Expense>>(
                     future: _futureExpenses,
