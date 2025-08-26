@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wedstra_mobile_app/constants/app_constants.dart';
 import 'package:wedstra_mobile_app/data/services/Auth_Service/user_services/user_services.dart';
+import 'package:wedstra_mobile_app/presentations/screens/blogs/Blogs.dart';
 import 'package:wedstra_mobile_app/presentations/screens/edit_profile/edit_profile.dart';
 import 'package:wedstra_mobile_app/presentations/screens/expense_track/expense_tracker.dart';
 import 'package:wedstra_mobile_app/presentations/screens/help_center/help_center.dart';
@@ -14,7 +15,10 @@ import 'package:wedstra_mobile_app/presentations/screens/wishlist/wishlist.dart'
 import 'package:wedstra_mobile_app/presentations/widgets/Toast_helper/toast_helper.dart';
 
 import '../../../data/services/Auth_Service/auth_layout.dart';
+import '../../screens/manage_blogs/manage_blogs.dart';
 import '../../screens/manage_services/manage_services.dart';
+import '../../screens/manage_users/manage_users.dart';
+import '../../screens/manage_vendors/manage_vendors.dart';
 
 class ProfileTab extends StatefulWidget {
   const ProfileTab({Key? key}) : super(key: key);
@@ -191,6 +195,10 @@ class _ProfileTabState extends State<ProfileTab> {
                   ),
             ));
           }),
+          _buildTabTile('assets/profile_user.png', 'Manage Blogs', () {
+            Navigator.push(
+                context, MaterialPageRoute(builder: (_) => Blogs()));
+          }),
           _buildTabTile('assets/profile_upgrade.png', 'Upgrade Plan', () {
             Navigator.push(
                 context, MaterialPageRoute(builder: (_) => UpgradePlan()));
@@ -201,7 +209,8 @@ class _ProfileTabState extends State<ProfileTab> {
           }),
         ],
       );
-    } else if (userRole == 'VENDOR') {
+    }
+    if (userRole == 'VENDOR') {
       return Column(
         children: [
           _buildTabTile('assets/profile_user.png', 'Edit Vendor Profile', () {
@@ -226,7 +235,8 @@ class _ProfileTabState extends State<ProfileTab> {
           }),
         ],
       );
-    } else if (userRole == 'ADMIN') {
+    }
+    if (userRole == 'ADMIN') {
       return Column(
         children: [
           _buildTabTile('assets/profile_user.png', 'Manage Users', () {
@@ -253,15 +263,6 @@ class _ProfileTabState extends State<ProfileTab> {
   }
 
 
-}
-
-ManageBlogs() {
-}
-
-ManageVendors() {
-}
-
-ManageUsers() {
 }
 
 VendorProfile() {

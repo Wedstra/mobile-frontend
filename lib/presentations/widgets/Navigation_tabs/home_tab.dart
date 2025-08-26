@@ -6,6 +6,7 @@ import 'package:iconsax/iconsax.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wedstra_mobile_app/constants/app_constants.dart';
 import 'package:wedstra_mobile_app/data/models/sellers.dart';
+import 'package:wedstra_mobile_app/presentations/screens/user_cart/user_cart.dart';
 import 'package:wedstra_mobile_app/presentations/screens/vendor_signup/vendor_signup.dart';
 import 'package:wedstra_mobile_app/presentations/screens/vendors/vendor_display.dart';
 
@@ -182,7 +183,9 @@ class _HomeTabState extends State<HomeTab> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        onPressed: () {},
+                        onPressed: () {
+                          Navigator.push(context, MaterialPageRoute(builder: (context) => CartScreen()));
+                        },
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(12),
                           child: Icon(

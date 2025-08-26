@@ -48,15 +48,18 @@ class _HelpCenterState extends State<HelpCenter> {
                 ),
               ),
               const SizedBox(height: 16),
-              Card(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 4,
-                child: const ListTile(
-                  leading: Icon(Icons.phone, color: Colors.green),
-                  title: Text('+91 98765 43210'),
-                  subtitle: Text('Available Mon–Sat, 9 AM – 6 PM'),
+              InkWell(
+                onTap: (){},
+                child: Card(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 4,
+                  child: const ListTile(
+                    leading: Icon(Icons.phone, color: Colors.green),
+                    title: Text('+91 98765 43210'),
+                    subtitle: Text('Available Mon–Sat, 9 AM – 6 PM'),
+                  ),
                 ),
               ),
               const SizedBox(height: 20),

@@ -1,9 +1,10 @@
 // vendor_details_screen.dart
 import 'dart:convert';
-
+import '../chat_room/chat_room.dart';
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:wedstra_mobile_app/constants/app_constants.dart';
 import 'package:wedstra_mobile_app/presentations/screens/service_details/service_details.dart';
 import 'package:wedstra_mobile_app/presentations/widgets/snakbar_component/snakbars.dart';
@@ -84,12 +85,13 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
         },
       );
 
+      print("ACTUAL RESPONSE BODY = ${response.body}");
+
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         setState(() {
           serviceDetails = data;
         });
-        print('Services Loaded: $data');
       } else {
         print('Failed to load services: ${response.statusCode}');
       }
@@ -113,19 +115,39 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
 
   void _addToWishlist() async {
     try {
-      final response = await http.post(
-        Uri.parse(
-          '${AppConstants.BASE_URL}/wishlist/${useId}/add?vendorId=${widget.vendorId}',
-        ),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
-      if (response.statusCode == 200) {
-        showSnack(context, 'Vendor added to wishlist!');
+      if (isWishlisted == false) {
+        final response = await http.post(
+          Uri.parse(
+            '${AppConstants.BASE_URL}/wishlist/${useId}/add?vendorId=${widget.vendorId}',
+          ),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        );
+        if (response.statusCode == 200) {
+          showSnack(context, 'Vendor added to wishlist!');
+          setState(() {isWishlisted = true;});
+        } else {
+          showSnack(context, 'Something went wrong! adding', success: false);
+        }
       } else {
-        showSnack(context, 'Something went wrong!', success: false);
+        final response = await http.delete(
+          Uri.parse(
+            '${AppConstants.BASE_URL}/wishlist/${useId}/remove?vendorId=${widget.vendorId}',
+          ),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        );
+        if (response.statusCode == 200) {
+          setState(() { isWishlisted = false; });
+          showSnack(context, 'Vendor removed from wishlist!');
+        } else {
+          showSnack(context, 'Something went wrong! removing', success: false);
+        }
+
       }
     } on Exception catch (e) {
       print(e);
@@ -315,7 +337,13 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
         floatingActionButton: FloatingActionButton(
           backgroundColor: Color(AppConstants.primaryColor),
           onPressed: () {
-            //TODO: open dialouge for chatting with vendor
+            final chatRoom = ChatRoom(
+              vendorId: widget.vendorId,
+              vendorName: widget.vendor['vendor_name'],
+              userId: useId ?? "", // from _loadUserDetails
+              username: widget.vendor['vendor_name'], // or logged-in user name
+            );
+            chatRoom.openChat(context); // ✅ show dialog
           },
           child: Icon(Iconsax.messages, color: Colors.white),
         ),

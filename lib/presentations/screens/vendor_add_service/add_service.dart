@@ -7,6 +7,7 @@ import 'package:mime/mime.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:wedstra_mobile_app/constants/app_constants.dart';
 import 'package:wedstra_mobile_app/data/services/Auth_Service/user_services/user_services.dart';
+import 'package:wedstra_mobile_app/presentations/widgets/snakbar_component/snakbars.dart';
 
 class AddService extends StatefulWidget {
   final String? vendorId;
@@ -52,7 +53,10 @@ class _AddServiceState extends State<AddService> {
     }
   }
 
-  Future<void> submitService() async {
+  Future<void> submitService(BuildContext context) async {
+    setState(() {
+      isLoading = true;
+    });
     try {
       var uri = Uri.parse(
         '${AppConstants.BASE_URL}/service/${widget.vendorId}/create-service',
@@ -86,14 +90,17 @@ class _AddServiceState extends State<AddService> {
       var response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        print('Service created successfully');
-        // Navigate to dashboard or show toast
+        showSnack(context, 'Service created successfully');
+        Navigator.pop(context);
       } else {
-        print('Error: ${response.statusCode} - ${response.body}');
-        // Show alert/toast
+        showSnack(context, response.body, success: false);
       }
     } catch (e) {
       print('Exception: $e');
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
     }
   }
 
@@ -213,15 +220,22 @@ class _AddServiceState extends State<AddService> {
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: isLoading ? null : () => submitService(),
+                onPressed: isLoading ? null : () => submitService(context),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Color(AppConstants.primaryColor),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
+                  disabledBackgroundColor: Color(0xFFD63F66),
                 ),
                 child: isLoading
-                    ? Center(child: CircularProgressIndicator())
+                    ? Center(
+                        child: SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(color: Colors.white),
+                        ),
+                      )
                     : const Text(
                         "Create Service",
                         style: TextStyle(
