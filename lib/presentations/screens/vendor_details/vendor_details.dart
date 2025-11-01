@@ -1,14 +1,16 @@
 // vendor_details_screen.dart
 import 'dart:convert';
-
+import '../chat_room/chat_room.dart';
 import 'package:flutter/material.dart';
 import 'package:iconsax/iconsax.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:wedstra_mobile_app/constants/app_constants.dart';
 import 'package:wedstra_mobile_app/presentations/screens/service_details/service_details.dart';
 import 'package:wedstra_mobile_app/presentations/widgets/snakbar_component/snakbars.dart';
 import '../../widgets/CurvedEdgesWidget/curved_edges.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 
 class VendorDetailsScreen extends StatefulWidget {
   final String vendorId;
@@ -26,8 +28,11 @@ class VendorDetailsScreen extends StatefulWidget {
 
 class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
   List<dynamic> serviceDetails = [];
-  late String? useId;
-  late String? token;
+  List<dynamic> reviews = [];
+  List<dynamic> vendorDetails = [];
+  String? userId;
+  String? username;
+  String? token;
   bool isWishlisted = false;
 
   void _checkIfWishlisted() async {
@@ -88,9 +93,39 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
         setState(() {
           serviceDetails = data;
         });
-        print('Services Loaded: $data');
       } else {
         print('Failed to load services: ${response.statusCode}');
+      }
+    } on Exception catch (e) {
+      print(e);
+    }
+  }
+
+  void _loadVendorReviews() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      final storedtoken = prefs.getString("jwt_token");
+      setState(() {
+        token = storedtoken;
+      });
+      print("token = $token");
+      print("venodID = ${ widget.vendorId }");
+      final response = await http.get(
+        Uri.parse('${AppConstants.BASE_URL}/reviews/vendor/${ widget.vendorId }'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        setState(() {
+          reviews = data;
+        });
+      } else {
+        print('Failed to load Reviews: ${response.statusCode}');
       }
     } on Exception catch (e) {
       print(e);
@@ -104,26 +139,50 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
     if (userData != null) {
       final jsonDecoded = json.decode(userData);
       setState(() {
-        useId = jsonDecoded['id'];
+        userId = jsonDecoded['id'];
+        username = jsonDecoded['username'];
       });
     }
   }
 
   void _addToWishlist() async {
     try {
-      final response = await http.post(
-        Uri.parse(
-          '${AppConstants.BASE_URL}/wishlist/${useId}/add?vendorId=${widget.vendorId}',
-        ),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
-      if (response.statusCode == 200) {
-        showSnack(context, 'Vendor added to wishlist!');
+      if (isWishlisted == false) {
+        final response = await http.post(
+          Uri.parse(
+            '${AppConstants.BASE_URL}/wishlist/${userId}/add?vendorId=${widget.vendorId}',
+          ),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        );
+        if (response.statusCode == 200) {
+          showSnack(context, 'Vendor added to wishlist!');
+          setState(() {
+            isWishlisted = true;
+          });
+        } else {
+          showSnack(context, 'Something went wrong! adding', success: false);
+        }
       } else {
-        showSnack(context, 'Something went wrong!', success: false);
+        final response = await http.delete(
+          Uri.parse(
+            '${AppConstants.BASE_URL}/wishlist/$userId/remove?vendorId=${widget.vendorId}',
+          ),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        );
+        if (response.statusCode == 200) {
+          setState(() {
+            isWishlisted = false;
+          });
+          showSnack(context, 'Vendor removed from wishlist!');
+        } else {
+          showSnack(context, 'Something went wrong! removing', success: false);
+        }
       }
     } on Exception catch (e) {
       print(e);
@@ -132,9 +191,11 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
 
   @override
   void initState() {
+    super.initState();
     _loadUserDetails();
     loadServicesByVendor();
     _checkIfWishlisted();
+    _loadVendorReviews();
   }
 
   @override
@@ -211,7 +272,7 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
                         children: [
                           Expanded(
                             child: Text(
-                              'Swami Caterers',
+                              widget.vendor['business_name'],
                               style: TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
@@ -231,11 +292,11 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
 
                       // By vendor
                       Row(
-                        children: const [
-                          Text('by ', style: TextStyle(fontSize: 16)),
+                        children: [
+                          const Text('by ', style: TextStyle(fontSize: 16)),
                           Text(
-                            'Ashwin Somnath',
-                            style: TextStyle(
+                            widget.vendor['vendor_name'],
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
@@ -257,8 +318,8 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
                               color: Colors.amber[600],
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Text(
-                              'Photography',
+                            child: Text(
+                              widget.vendor['business_category'],
                               style: TextStyle(
                                 color: Colors.black,
                                 fontWeight: FontWeight.bold,
@@ -266,7 +327,10 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
                             ),
                           ),
                           const SizedBox(width: 8),
-                          const Text('| Pune', style: TextStyle(fontSize: 16)),
+                          Text(
+                            '| ${widget.vendor['city']}',
+                            style: TextStyle(fontSize: 16),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 5),
@@ -295,11 +359,17 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
                   child: TabBarView(
                     children: [
                       // About Tab
-                      AboutTab(),
+                      AboutTab(vendor: widget.vendor),
                       // Services Tab
                       ServiceTab(serviceDetails: serviceDetails),
                       // Reviews Tab
-                      ReviewsTab(),
+                      ReviewsTab(
+                        userId: userId,
+                        username: username,
+                        vendorId: widget.vendorId,
+                        token: token,
+                        reviews: reviews,
+                      ),
                     ],
                   ),
                 ),
@@ -310,7 +380,13 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
         floatingActionButton: FloatingActionButton(
           backgroundColor: Color(AppConstants.primaryColor),
           onPressed: () {
-            //TODO: open dialouge for chatting with vendor
+            final chatRoom = ChatRoom(
+              vendorId: widget.vendorId,
+              vendorName: widget.vendor['vendor_name'],
+              userId: userId ?? "", // from _loadUserDetails
+              username: widget.vendor['vendor_name'], // or logged-in user name
+            );
+            chatRoom.openChat(context); // ✅ show dialog
           },
           child: Icon(Iconsax.messages, color: Colors.white),
         ),
@@ -320,25 +396,218 @@ class _VendorDetailsScreenState extends State<VendorDetailsScreen> {
 }
 
 class ReviewsTab extends StatelessWidget {
-  const ReviewsTab({super.key});
+  final String? userId;
+  final String? username;
+  final String vendorId;
+  final String? token;
+  final List<dynamic> reviews;
+  const ReviewsTab({
+    super.key,
+    required this.userId,
+    required this.username,
+    required String this.vendorId,
+    required String? this.token,
+    required List<dynamic> this.reviews,
+  });
 
   @override
   Widget build(BuildContext context) {
+    Future<void> addReviewToVendor(String reviewContent, int ratings) async {
+      final Map<String, dynamic> jsonBody = {
+        "userId": userId,
+        "vendorId": vendorId,
+        "username": username,
+        "content": reviewContent,
+        "rating": ratings.toInt(),
+      };
+
+      try {
+        final response = await http.post(
+          Uri.parse("${AppConstants.BASE_URL}/reviews"),
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer $token", // 🔑 token here
+          },
+          body: jsonEncode(jsonBody),
+        );
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          showSnack(context, "Review submitted successfully!");
+        } else {
+          showSnack(context, "Failed to submit review!", success: false);
+        }
+      } catch (e) {
+        print("Error submitting review: $e");
+      }
+    }
+
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: SingleChildScrollView(
         child: Column(
-          children: const [
-            ListTile(
-              leading: Icon(Icons.person),
-              title: Text('Anjali Patel'),
-              subtitle: Text('Amazing food and service!'),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Add Review Button
+            Align(
+              alignment: Alignment.centerRight,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) {
+                      final TextEditingController reviewController =
+                          TextEditingController();
+                      double selectedRating = 0; // store user’s rating
+
+                      return StatefulBuilder(
+                        // use this so stars can update inside dialog
+                        builder: (context, setState) {
+                          return AlertDialog(
+                            title: const Text("Add Review"),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Text input
+                                TextField(
+                                  controller: reviewController,
+                                  decoration: const InputDecoration(
+                                    hintText: "Write your review here...",
+                                  ),
+                                  maxLines: 3,
+                                ),
+                                const SizedBox(height: 20),
+
+                                // Rating stars
+                                const Text("Rate this vendor:"),
+                                const SizedBox(height: 8),
+                                RatingBar.builder(
+                                  initialRating: 0,
+                                  minRating: 1,
+                                  allowHalfRating: false,
+                                  itemCount: 5,
+                                  itemSize: 32,
+                                  glow: false,
+                                  itemBuilder: (context, _) => const Icon(
+                                    Icons.star,
+                                    color: Colors.amber,
+                                  ),
+                                  onRatingUpdate: (rating) {
+                                    setState(() {
+                                      selectedRating = rating;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context),
+                                child: const Text("Cancel"),
+                              ),
+                              ElevatedButton(
+                                onPressed: () {
+                                  final reviewContent = reviewController.text
+                                      .trim();
+
+                                  if (reviewContent.isNotEmpty &&
+                                      selectedRating > 0) {
+                                    addReviewToVendor(
+                                      reviewContent,
+                                      selectedRating.toInt(),
+                                    );
+                                    Navigator.pop(context);
+                                  } else {
+                                    // optional: show validation error
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          "Please add review & rating",
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                                child: const Text("Submit"),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                  );
+                },
+                icon: const Icon(Iconsax.message_add, color: Colors.white),
+                label: const Text(
+                  "Add Review",
+                  style: TextStyle(color: Colors.white),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(AppConstants.primaryColor),
+                ),
+              ),
             ),
-            Divider(),
-            ListTile(
-              leading: Icon(Icons.person),
-              title: Text('Rohan Mehta'),
-              subtitle: Text('Highly recommended!'),
+            const SizedBox(height: 16),
+
+            ListView.separated(
+              shrinkWrap: true,
+              physics:
+                  const NeverScrollableScrollPhysics(), // allow wrapping inside parent scroll
+              itemCount: reviews.length,
+              separatorBuilder: (_, __) => const Divider(),
+              itemBuilder: (context, index) {
+                final review = reviews[index];
+
+                return ListTile(
+                  leading: CircleAvatar(
+                    radius: 20,
+                    backgroundColor: Colors.grey.shade200,
+                    backgroundImage: review['profileImage'] != null &&
+                        review['profileImage'].isNotEmpty
+                        ? NetworkImage(review['profileImage'])
+                        : null,
+                    child: (review['profileImage'] == null ||
+                        review['profileImage'].isEmpty)
+                        ? const Icon(Icons.person, color: Colors.grey)
+                        : null,
+                  ),
+                  title: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              review['username'] ?? "Unknown",
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          RatingBarIndicator(
+                            rating: (review['rating'] ?? 0).toDouble(),
+                            itemBuilder: (context, _) =>
+                            const Icon(Icons.star, color: Colors.amber),
+                            itemSize: 18,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        review['content'] ?? "",
+                        style: const TextStyle(fontSize: 14, color: Colors.black87),
+                      ),
+                    ],
+                  ),
+                  // Removing subtitle because we moved everything into title column
+                  subtitle: null,
+                );
+
+
+              },
             ),
           ],
         ),
@@ -452,9 +721,15 @@ class _ServiceTabState extends State<ServiceTab> {
   }
 }
 
-class AboutTab extends StatelessWidget {
-  const AboutTab({super.key});
+class AboutTab extends StatefulWidget {
+  final dynamic vendor;
+  const AboutTab({super.key, required this.vendor});
 
+  @override
+  State<AboutTab> createState() => _AboutTabState();
+}
+
+class _AboutTabState extends State<AboutTab> {
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -470,16 +745,29 @@ class AboutTab extends StatelessWidget {
               ),
             ),
             SizedBox(height: 5),
-            Text(
-              'Lorem ipsum dolor sit amet, consectetur apiscing elit. Ut et massa mi. Aliquam in '
-              'hendrerit urna. Pellentesque sit amet sapien fringilla, mattis lgula consectetur, ultrices '
-              'mauris. Maecenas vitae attis tellus. Nullam quis imperdiet augue. Vestibulum auctor ornare leo, '
-              'non suscipit magna interdum eu. Curabitur pellentesque nibh nibh, at maximus ante fermentum sit amet. '
-              'Pellentesque commodo lacus at sodales sodales. Quisque sagittis orci ut diam condimentum, vel euismod '
-              'erat placerat. In iaculis arcu eros, eget tempus orci facilisis id.',
-              style: TextStyle(fontSize: 16),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                widget.vendor['terms_and_conditions'],
+                style: TextStyle(fontSize: 16),
+              ),
             ),
-            SizedBox(height: 20),
+            SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'GSTIN - ',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                widget.vendor['gst_number'],
+                style: TextStyle(fontSize: 16),
+              ),
+            ),
+            SizedBox(height: 10),
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
@@ -488,13 +776,14 @@ class AboutTab extends StatelessWidget {
               ),
             ),
             SizedBox(height: 5),
-            Text(
-              'Lorem ipsum dolor sit amet, consectetur apiscing elit. Ut et massa mi. Aliquam in '
-              'hendrerit urna. Pellentesque sit amet sapien fringilla, mattis lgula consectetur, ultrices '
-              'mauris. Maecenas vitae attis tellus. Nullam quis imperdiet augue. Vestibulum auctor ornare leo, ',
-              style: TextStyle(fontSize: 16),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                widget.vendor['city'],
+                style: TextStyle(fontSize: 16),
+              ),
             ),
-            SizedBox(height: 20),
+            SizedBox(height: 10),
             Align(
               alignment: Alignment.centerLeft,
               child: Text(
@@ -513,7 +802,7 @@ class AboutTab extends StatelessWidget {
                     color: Color(0xFF414141),
                   ),
                 ),
-                Text('+91 34XXXXXX83', style: TextStyle(fontSize: 16)),
+                Text(widget.vendor['phone_no'], style: TextStyle(fontSize: 16)),
               ],
             ),
             Row(
@@ -526,7 +815,7 @@ class AboutTab extends StatelessWidget {
                     color: Color(0xFF474747),
                   ),
                 ),
-                Text('XXXXXX@gmail.com', style: TextStyle(fontSize: 16)),
+                Text(widget.vendor['email'], style: TextStyle(fontSize: 16)),
               ],
             ),
           ],

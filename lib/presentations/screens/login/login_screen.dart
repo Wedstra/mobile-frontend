@@ -128,7 +128,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 controller: _emailController,
                 decoration: InputDecoration(
                   prefixIcon: Icon(Iconsax.sms),
-                  labelText: 'Email',
+                  labelText: 'Username',
                   enabledBorder: OutlineInputBorder(
                     borderSide: BorderSide(color: Color(0xFF474747), width: 1),
                     borderRadius: BorderRadius.circular(12),

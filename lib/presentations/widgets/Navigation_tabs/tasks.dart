@@ -295,19 +295,19 @@ class _TasksTabState extends State<TasksTab> {
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(8),
                               child: LinearProgressIndicator(
-                                value: 0.3,
+                                value: taskCompletePercentage / 100,
                                 backgroundColor: Colors.white.withOpacity(0.3),
-                                valueColor: AlwaysStoppedAnimation<Color>(
+                                valueColor: const AlwaysStoppedAnimation<Color>(
                                   Colors.green,
                                 ),
                                 minHeight: 10,
                               ),
                             ),
                           ),
-                          SizedBox(width: 8),
+                          const SizedBox(width: 8),
                           Text(
-                            '${taskCompletePercentage.toString()}%',
-                            style: TextStyle(
+                            '${taskCompletePercentage.toStringAsFixed(0)}%', // show rounded %
+                            style: const TextStyle(
                               fontSize: 15,
                               color: Colors.white,
                               fontWeight: FontWeight.w600,
@@ -315,6 +315,7 @@ class _TasksTabState extends State<TasksTab> {
                           ),
                         ],
                       ),
+
 
                       SizedBox(height: 20),
 
